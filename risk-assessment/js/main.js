@@ -220,7 +220,7 @@ const { jsPDF } = window.jspdf;
                 
                 let currentProgress = parseFloat(progressBar.style.width) || 20;
                 const totalRisks = MOCK_RISKS.length;
-                const progressForRisks = 80;
+                const progressForRisks = 70;
                 const progressIncrement = totalRisks > 0 ? (progressForRisks / totalRisks) : progressForRisks;
 
                 for (let i = 0; i < totalRisks; i++) {
@@ -235,9 +235,10 @@ const { jsPDF } = window.jspdf;
                 
                 tableLoader.classList.add('hidden');
                 
-                progressBar.style.width = '100%';
-                aiStatus.textContent = "Generation Complete. Review & Export.";
-                exportBtn.disabled = false;
+                progressBar.style.width = '90%';
+                aiStatus.textContent = "Analysis complete. Please review and accept risks.";
+                exportBtn.disabled = true;
+
                 if (riskData.length > 0) {
                     acceptAllContainer.classList.remove('hidden');
                     acceptAllContainer.classList.add('fade-in');
@@ -554,6 +555,60 @@ const { jsPDF } = window.jspdf;
                 return 'text-green-600'; // Low, Very Low, Negligible
             }
 
+            const getComplianceIconBase64 = (status) => {
+                return new Promise((resolve) => {
+                    const svgString = COMPLIANCE_ICONS[status];
+                    if (!svgString) {
+                        resolve(null);
+                        return;
+                    }
+
+                    // Use a more robust regex to find the text color class
+                    const colorMatch = svgString.match(/text-(red|green)-500/);
+                    let color = '#000000'; // Default to black
+                    if (colorMatch) {
+                        const colorName = colorMatch[1];
+                        if (colorName === 'red') {
+                            color = '#DC2626'; // Tailwind red-500
+                        } else if (colorName === 'green') {
+                            color = '#16A34A'; // This was the green color used in the original code
+                        }
+                    }
+
+                    // Prepare SVG for canvas conversion
+                    // 1. Add xmlns namespace
+                    // 2. Remove tailwind classes
+                    // 3. Set width and height explicitly
+                    // 4. Set stroke color explicitly, replacing currentColor
+                    let preparedSvgString = svgString.replace(/class="[^"]*"/, '');
+                    preparedSvgString = preparedSvgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"');
+                    preparedSvgString = preparedSvgString.replace(/stroke="currentColor"/g, `stroke="${color}"`);
+            
+                    const img = new Image();
+                    // Using a base64 data URL is often more reliable than blob URLs for this purpose.
+                    const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(preparedSvgString);
+
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        // Render at a higher resolution for better quality in the PDF
+                        const scale = 2; 
+                        canvas.width = 24 * scale;
+                        canvas.height = 24 * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const pngBase64 = canvas.toDataURL('image/png');
+                        resolve(pngBase64);
+                    };
+
+                    img.onerror = (e) => {
+                        console.error("Failed to load SVG image for PDF conversion. SVG content:", preparedSvgString);
+                        resolve(null);
+                    };
+
+                    img.src = svgDataUrl;
+                });
+            };
+
             const getRekonCompliance = (risks) => {
                 const hasSecurityRisks = risks.some(r => r.category === 'Security');
                 const hasHighImpactSecurityRisk = risks.some(r => r.category === 'Security' && r.impact >= 4);
@@ -594,6 +649,11 @@ const { jsPDF } = window.jspdf;
 
                 rekonMetricsSection.classList.remove('hidden');
                 rekonMetricsSection.classList.add('fade-in');
+
+                // Finalize progress and enable export
+                progressBar.style.width = '100%';
+                aiStatus.textContent = 'Generation Complete. Review & Export.';
+                exportBtn.disabled = false;
             };
 
             // --- Justification Pane Logic ---
@@ -750,21 +810,38 @@ const { jsPDF } = window.jspdf;
                 currentY += 8;
                 pdf.setFontSize(9);
                 pdf.setFont(undefined, 'normal');
-                const summaryLines = pdf.splitTextToSize(summaryContent.textContent, contentWidth);
-                summaryLines.forEach(line => {
-                    checkPageBreak(6);
-                    pdf.text(line, marginLeft, currentY);
-                    currentY += 6;
-                });
+                const summaryParagraphs = Array.from(summaryContent.querySelectorAll('p'));
+                if (summaryParagraphs.length > 0) {
+                    summaryParagraphs.forEach((p, index) => {
+                        const summaryLines = pdf.splitTextToSize(p.innerText, contentWidth);
+                        summaryLines.forEach(line => {
+                            checkPageBreak(5);
+                            pdf.text(line, marginLeft, currentY);
+                            currentY += 5;
+                        });
+                        // Add space between paragraphs, but not after the last one
+                        if (index < summaryParagraphs.length - 1) {
+                            currentY += 3; 
+                        }
+                    });
+                } else {
+                    // Fallback for plain text or unexpected structure
+                    const summaryLines = pdf.splitTextToSize(summaryContent.innerText, contentWidth);
+                    summaryLines.forEach(line => {
+                        checkPageBreak(5);
+                        pdf.text(line, marginLeft, currentY);
+                        currentY += 5;
+                    });
+                }
                 currentY += 8;
         
-                // Detailed Risk Assessment Table
+                // Detailed Risk Table
                 if (riskData.length > 0) {
                     checkPageBreak(20); 
                     pdf.setTextColor(0, 0, 0);
                     pdf.setFontSize(13);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Detailed Risk Assessment', marginLeft, currentY);
+                    pdf.text('Detailed Risk Table', marginLeft, currentY);
                     currentY += 7;
         
                     const tableBodyData = riskData.map(risk => [
@@ -840,24 +917,42 @@ const { jsPDF } = window.jspdf;
                     const rekonComplianceInfo = getRekonCompliance(riskData);
                     pdf.setFontSize(11);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('RekonCompliance Status', marginLeft, currentY);
-                    currentY += 7;
+                    pdf.setTextColor(0,0,0);
+                    const statusLabel = 'RekonCompliance Status:';
+                    pdf.text(statusLabel, marginLeft, currentY);
+
+                    const statusLabelWidth = pdf.getTextWidth(statusLabel);
+                    let currentX = marginLeft + statusLabelWidth + 3; // Start after label
+        
+                    const iconBase64 = await getComplianceIconBase64(rekonComplianceInfo.status);
+                    const iconSize = 8;
+                    if (iconBase64) {
+                        pdf.addImage(iconBase64, 'PNG', currentX, currentY - (iconSize / 2) - 1, iconSize, iconSize);
+                        currentX += iconSize + 2;
+                    }
+        
                     pdf.setFontSize(10);
                     pdf.setFont(undefined, 'bold');
-                    if (rekonComplianceInfo.status === 'Compliant' || rekonComplianceInfo.status === 'Exceeds Compliance') pdf.setTextColor(22, 163, 74);
-                    else pdf.setTextColor(220, 38, 38);
-                    let statusText = '';
-                    if (rekonComplianceInfo.status === 'Non-Compliant') statusText = '[X] ';
-                    if (rekonComplianceInfo.status === 'Compliant') statusText = '[✓] ';
-                    if (rekonComplianceInfo.status === 'Exceeds Compliance') statusText = '[✓✓] ';
-                    statusText += rekonComplianceInfo.status;
-                    pdf.text(statusText, marginLeft, currentY);
-                    currentY += 7;
-                    pdf.setTextColor(0,0,0);
+        
+                    if (rekonComplianceInfo.status === 'Compliant' || rekonComplianceInfo.status === 'Exceeds Compliance') {
+                        pdf.setTextColor(22, 163, 74);
+                    } else {
+                        pdf.setTextColor(220, 38, 38);
+                    }
+        
+                    pdf.text(rekonComplianceInfo.status, currentX, currentY);
+                    currentY += 10; // Move down for the description
+        
+                    pdf.setTextColor(0, 0, 0);
                     pdf.setFontSize(9);
                     pdf.setFont(undefined, 'normal');
+        
                     const complianceDescLines = pdf.splitTextToSize(rekonComplianceInfo.description, contentWidth);
-                    complianceDescLines.forEach(line => { checkPageBreak(5); pdf.text(line, marginLeft, currentY); currentY += 5; });
+                    complianceDescLines.forEach(line => {
+                        checkPageBreak(5);
+                        pdf.text(line, marginLeft, currentY);
+                        currentY += 5;
+                    });
                 }
         
                 addFooter();
