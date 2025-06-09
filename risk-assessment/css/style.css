@@ -1,0 +1,189 @@
+body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f5; /* Zinc 100 */
+            color: #18181b; /* Zinc 900 */
+        }
+        .form-input, .form-select, .form-textarea {
+            transition: all 0.2s ease-in-out;
+            background-color: #ffffff;
+            border-color: #d4d4d8; /* Zinc 300 */
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6; /* Blue 500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        .btn {
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 600; /* font-semibold */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* Blue 500 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Blue 600 */
+        }
+        .btn-primary:disabled {
+            background-color: #9ca3af; /* Gray 400 */
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb; /* Gray 200 */
+            color: #374151; /* Gray 700 */
+            border: 1px solid #d1d5db; /* Gray 300 */
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db; /* Gray 300 */
+        }
+        .btn-secondary:disabled {
+            background-color: #f3f4f6; /* Gray 100, lighter */
+            color: #9ca3af;      /* Gray 400, for text */
+            border-color: #e5e7eb; /* Gray 200, lighter border */
+            cursor: not-allowed;
+            opacity: 0.75; /* opacity for a more faded look: 0.7->0.75 */
+        }
+        .table-row-new {
+            background-color: #eff6ff; /* Blue 50 */
+        }
+        .table-row-accepted {
+            background-color: #f0fdf4; /* Green 50 */
+        }
+        .table-cell-editing {
+            background-color: white !important;
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 40vh;
+        }
+        .loader {
+            border: 4px solid #e5e7eb; /* Gray 200 */
+            border-top: 4px solid #3b82f6; /* Blue 500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        #reportContainer { padding: 2rem; background-color: white; } /* For PDF export */
+        .fixed-table-layout {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .justification-icon-container {
+            position: relative;
+        }
+        .justification-plus-icon {
+            position: absolute;
+            top: 2px; 
+            right: 2px; 
+            width: 18px; 
+            height: 18px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem; 
+            font-weight: bold;
+            line-height: 1;
+            color: #3b82f6; /* Blue 500 */
+            border: 1.5px solid #3b82f6; /* Blue 500 */
+            background-color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            z-index: 10;
+        }
+        .justification-icon-container:hover .justification-plus-icon,
+        .justification-plus-icon:hover {
+            opacity: 1;
+            background-color: #eff6ff; /* Blue 50 */
+            border-color: #2563eb; /* Blue 600 */
+        }
+        /* Ensure icon is visible when cell is being edited */
+        .table-cell-editing .justification-plus-icon {
+            opacity: 1;
+        }
+        /* Summary specific hover for its container */
+        #summaryContentWrapper:hover .justification-plus-icon {
+             opacity: 1;
+        }
+        #justificationPane {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background-color: white;
+            border-left: 1px solid #d1d5db;
+            padding: 2rem;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        #justificationPane.open {
+            transform: translateX(0);
+        }
+        #justificationPane h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        #justificationPane p {
+            margin-bottom: 0.5rem;
+        }
+        #justificationPane ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+        }
+        #closeJustificationPane {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #374151;
+            cursor: pointer;
+        }
+        /* Styles for the new Help Icon Button */
+        #helpIconBtn {
+            background-color: transparent;
+            border: 1px solid #d4d4d8; /* Zinc 300 for border */
+            color: #3f3f46; /* Zinc 700 for text */
+            width: 32px; /* Ensure width and height are equal for a circle */
+            height: 32px; /* Ensure width and height are equal for a circle */
+            padding: 0; /* Remove padding if setting fixed width/height */
+            display: flex; /* For centering the question mark */
+            align-items: center; /* For centering the question mark */
+            justify-content: center; /* For centering the question mark */
+            border-radius: 50%; /* Make it a circle */
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            line-height: 1; /* Adjust line height for '?' character */
+            transition: all 0.2s ease-in-out;
+        }
+        #helpIconBtn:hover {
+            background-color: #e4e4e7; /* Zinc 200 for hover */
+            border-color: #a1a1aa; /* Zinc 400 for hover border */
+            color: #18181b; /* Zinc 900 for hover text */
+        } 

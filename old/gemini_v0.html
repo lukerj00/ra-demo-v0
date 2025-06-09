@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<!-- doc type -->
+<html lang="en">
+<head>
+    <!-- head contains meta-information about the document -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Risk Assessment Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f5; /* Zinc 100 */
+        }
+        .form-input, .form-select, .form-textarea {
+            transition: all 0.2s ease-in-out;
+            background-color: #ffffff;
+            border-color: #d4d4d8; /* Zinc 300 */
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6; /* Blue 500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* Blue 500 */
+            color: white;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Blue 600 */
+        }
+        .btn-primary:disabled {
+            background-color: #9ca3af; /* Gray 400 */
+            cursor: not-allowed;
+        }
+        .table-row-new {
+            background-color: #eff6ff; /* Blue 50 */
+        }
+        .table-row-accepted {
+            background-color: #f0fdf4; /* Green 50 */
+        }
+        .table-cell-editing {
+            background-color: white !important;
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 40vh;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="text-zinc-800">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+
+        <div id="screen1">
+            <header class="mb-8 text-center">
+                <h1 class="text-3xl font-bold text-zinc-900">Create New Risk Assessment</h1>
+                <p class="mt-2 text-lg text-zinc-600">Provide the project details and documents for the AI to begin analysis.</p>
+            </header>
+
+            <div class="bg-white p-8 rounded-xl shadow-md border border-zinc-200">
+                <form id="setupForm" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-semibold text-zinc-800 border-b pb-2">Project Information</h2>
+                        <div>
+                            <label for="projectName" class="block text-sm font-medium text-zinc-700 mb-1">Project Name/Identifier *</label>
+                            <input type="text" id="projectName" name="projectName" class="form-input w-full rounded-md border p-2" required>
+                        </div>
+                        <div>
+                            <label for="projectScope" class="block text-sm font-medium text-zinc-700 mb-1">Project Scope & Objectives</label>
+                            <textarea id="projectScope" name="projectScope" rows="4" class="form-textarea w-full rounded-md border p-2" placeholder="e.g., Launching a new mobile banking app..."></textarea>
+                        </div>
+                         <div>
+                            <label for="industry" class="block text-sm font-medium text-zinc-700 mb-1">Industry/Sector</label>
+                            <select id="industry" name="industry" class="form-select w-full rounded-md border p-2">
+                                <option>Technology</option>
+                                <option>Finance</option>
+                                <option>Healthcare</option>
+                                <option>Manufacturing</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-semibold text-zinc-800 border-b pb-2">File Upload</h2>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 mb-1">Relevant Documents</label>
+                            <div id="dropZone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 border-dashed rounded-md">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-zinc-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    <div class="flex text-sm text-zinc-600">
+                                        <label for="fileUpload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                            <span>Upload a file</span>
+                                            <input id="fileUpload" name="fileUpload" type="file" class="sr-only" multiple>
+                                        </label>
+                                        <p class="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p class="text-xs text-zinc-500">PDF, DOCX, XLSX up to 10MB</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="fileList" class="space-y-2"></div>
+                    </div>
+                </form>
+
+                <div class="mt-8 pt-5 border-t border-zinc-200">
+                    <div class="flex justify-end">
+                        <button type="button" id="generateBtn" class="btn-primary rounded-md py-2 px-4 text-sm font-semibold shadow-sm" disabled>
+                            Generate Risk Assessment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen2" class="hidden">
+            <header class="mb-6">
+                <h1 id="reportTitle" class="text-3xl font-bold text-zinc-900"></h1>
+                <div class="mt-4 bg-zinc-100 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-sm font-medium text-zinc-600">AI STATUS</h2>
+                        <span id="aiStatus" class="text-sm font-semibold text-blue-600">Initializing...</span>
+                    </div>
+                    <div class="w-full bg-zinc-200 rounded-full h-2.5">
+                        <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
+                    </div>
+                </div>
+            </header>
+
+            <div id="summarySection" class="mb-8 hidden">
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-zinc-200">
+                    <h2 class="text-xl font-semibold text-zinc-800 mb-3">Initial AI Summary</h2>
+                    <div id="summaryContent" class="text-zinc-600 leading-relaxed p-4 rounded-md bg-zinc-50 border border-zinc-200" contenteditable="false"></div>
+                    <div id="summaryActions" class="mt-4 flex items-center gap-4 hidden">
+                        <button id="acceptSummaryBtn" class="text-sm font-semibold text-green-600 hover:text-green-800 transition">✔ Accept</button>
+                        <button id="editSummaryBtn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">✏️ Edit</button>
+                        <button id="saveSummaryBtn" class="hidden text-sm font-semibold text-blue-600 hover:text-blue-800 transition">💾 Save</button>
+                    </div>
+                 </div>
+            </div>
+
+            <div id="riskTableSection" class="bg-white p-6 rounded-xl shadow-md border border-zinc-200 hidden">
+                <h2 class="text-xl font-semibold text-zinc-800 mb-4">Detailed Risk Assessment</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-zinc-200">
+                        <thead class="bg-zinc-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Risk Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Impact</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Likelihood</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Overall</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Mitigations</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTableBody" class="bg-white divide-y divide-zinc-200">
+                            </tbody>
+                    </table>
+                     <div id="tableLoader" class="flex justify-center items-center py-8 hidden">
+                        <div class="loader"></div>
+                        <p class="ml-4 text-zinc-500">AI is analyzing risks...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="chartSection" class="bg-white p-6 mt-8 rounded-xl shadow-md border border-zinc-200 hidden">
+                <h2 class="text-xl font-semibold text-zinc-800 mb-4">Risk Distribution by Category</h2>
+                 <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button id="exportBtn" class="btn-primary rounded-md py-2 px-4 text-sm font-semibold shadow-sm" disabled>Export to PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const screen1 = document.getElementById('screen1');
+            const screen2 = document.getElementById('screen2');
+            const setupForm = document.getElementById('setupForm');
+            const projectNameInput = document.getElementById('projectName');
+            const generateBtn = document.getElementById('generateBtn');
+            const reportTitle = document.getElementById('reportTitle');
+            const aiStatus = document.getElementById('aiStatus');
+            const progressBar = document.getElementById('progressBar');
+            
+            const summarySection = document.getElementById('summarySection');
+            const summaryContent = document.getElementById('summaryContent');
+            const summaryActions = document.getElementById('summaryActions');
+            const acceptSummaryBtn = document.getElementById('acceptSummaryBtn');
+            const editSummaryBtn = document.getElementById('editSummaryBtn');
+            const saveSummaryBtn = document.getElementById('saveSummaryBtn');
+
+            const riskTableSection = document.getElementById('riskTableSection');
+            const tableLoader = document.getElementById('tableLoader');
+            const riskTableBody = document.getElementById('riskTableBody');
+            const chartSection = document.getElementById('chartSection');
+            const exportBtn = document.getElementById('exportBtn');
+            const riskChartCanvas = document.getElementById('riskChart');
+
+            const dropZone = document.getElementById('dropZone');
+            const fileUpload = document.getElementById('fileUpload');
+            const fileList = document.getElementById('fileList');
+
+            // --- State ---
+            let riskData = [];
+            let riskChart = null;
+
+            // --- Mock Data ---
+            const MOCK_SUMMARY = "Based on the provided project scope for a new mobile banking app, the initial analysis identifies several key risk areas. The highest concentrations of risk are found in cybersecurity, particularly concerning data breaches and unauthorized access. Operational risks related to system downtime and regulatory compliance with financial laws also present significant challenges. The following detailed breakdown will quantify and suggest mitigations for these identified risks.";
+            const MOCK_RISKS = [
+                { id: 1, risk: "Unauthorized access to customer financial data", category: "Cybersecurity", impact: 5, likelihood: 3, mitigation: "Implement multi-factor authentication (MFA) and end-to-end encryption for all data transmissions." },
+                { id: 2, risk: "Denial-of-Service (DoS) attack causing system outage", category: "Cybersecurity", impact: 4, likelihood: 4, mitigation: "Utilize a cloud-based DDoS mitigation service and implement rate limiting on API endpoints." },
+                { id: 3, risk: "Non-compliance with PCI-DSS standards", category: "Compliance", impact: 5, likelihood: 2, mitigation: "Conduct a third-party audit against PCI-DSS requirements and remediate all identified gaps." },
+                { id: 4, risk: "System failure during peak transaction times", category: "Operational", impact: 4, likelihood: 3, mitigation: "Perform extensive load testing and implement auto-scaling infrastructure." },
+                { id: 5, risk: "Data loss due to hardware failure or corruption", category: "Operational", impact: 5, likelihood: 2, mitigation: "Establish automated, regular backups to a geographically separate location and test recovery procedures quarterly." },
+                { id: 6, risk: "Phishing attacks targeting employees with system access", category: "Cybersecurity", impact: 4, likelihood: 4, mitigation: "Mandatory, regular security awareness training for all employees and use of advanced email filtering." },
+            ];
+
+            // --- Form & File Upload Logic ---
+            const validateForm = () => {
+                generateBtn.disabled = !projectNameInput.value.trim();
+            };
+
+            projectNameInput.addEventListener('input', validateForm);
+
+            const handleFiles = (files) => {
+                fileList.innerHTML = '';
+                for (const file of files) {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'flex items-center justify-between bg-zinc-100 p-2 rounded-md text-sm';
+                    fileDiv.innerHTML = `
+                        <span>${file.name}</span>
+                        <button class="text-red-500 hover:text-red-700">&times;</button>
+                    `;
+                    fileDiv.querySelector('button').onclick = () => fileDiv.remove();
+                    fileList.appendChild(fileDiv);
+                }
+            };
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                handleFiles(e.dataTransfer.files);
+            });
+            fileUpload.addEventListener('change', (e) => handleFiles(e.target.files));
+
+            // --- Simulation Logic ---
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const startGeneration = async () => {
+                screen1.classList.add('hidden');
+                reportTitle.textContent = `Risk Assessment for: ${projectNameInput.value}`;
+                screen2.classList.remove('hidden');
+
+                // 1. Generate Summary
+                aiStatus.textContent = "Generating Initial Summary...";
+                progressBar.style.width = '10%';
+                await sleep(1500);
+                
+                summarySection.classList.remove('hidden');
+                summarySection.classList.add('fade-in');
+                summaryContent.textContent = MOCK_SUMMARY;
+                summaryActions.classList.remove('hidden');
+                progressBar.style.width = '20%';
+
+                // Wait for summary acceptance
+                aiStatus.textContent = "Awaiting summary review...";
+                
+                // For demo purposes, we will proceed automatically after a delay
+                await sleep(2000);
+                acceptSummaryBtn.click(); // auto-accept for demo
+                
+                // 2. Generate Risk Table
+                riskTableSection.classList.remove('hidden');
+                riskTableSection.classList.add('fade-in');
+                tableLoader.classList.remove('hidden');
+                aiStatus.textContent = `Analyzing risks...`;
+                
+                let currentProgress = 20;
+                const progressIncrement = 80 / MOCK_RISKS.length;
+
+                for (const risk of MOCK_RISKS) {
+                    currentProgress += progressIncrement;
+                    progressBar.style.width = `${currentProgress}%`;
+                    aiStatus.textContent = `Generating Risk Item ${risk.id} of ${MOCK_RISKS.length}`;
+                    await sleep(1000);
+                    addRiskRow(risk);
+                    riskData.push(risk);
+                }
+                
+                // 3. Finalize
+                tableLoader.classList.add('hidden');
+                aiStatus.textContent = "Generation Complete. Review & Export.";
+                progressBar.style.width = '100%';
+                exportBtn.disabled = false;
+                
+                // 4. Generate Chart
+                chartSection.classList.remove('hidden');
+                chartSection.classList.add('fade-in');
+                renderChart();
+            };
+
+            generateBtn.addEventListener('click', startGeneration);
+
+            // --- Summary Actions ---
+            acceptSummaryBtn.addEventListener('click', () => {
+                summaryContent.classList.remove('table-cell-editing');
+                summaryContent.contentEditable = false;
+                acceptSummaryBtn.innerHTML = '✔ Accepted';
+                acceptSummaryBtn.disabled = true;
+                editSummaryBtn.classList.add('hidden');
+                saveSummaryBtn.classList.add('hidden');
+            });
+            editSummaryBtn.addEventListener('click', () => {
+                summaryContent.contentEditable = true;
+                summaryContent.classList.add('table-cell-editing');
+                summaryContent.focus();
+                editSummaryBtn.classList.add('hidden');
+                saveSummaryBtn.classList.remove('hidden');
+            });
+            saveSummaryBtn.addEventListener('click', () => {
+                summaryContent.contentEditable = false;
+                summaryContent.classList.remove('table-cell-editing');
+                editSummaryBtn.classList.remove('hidden');
+                saveSummaryBtn.classList.add('hidden');
+            });
+
+
+            // --- Table & Chart Logic ---
+            const getScoreColor = (score) => {
+                if (score >= 15) return 'bg-red-100 text-red-800';
+                if (score >= 8) return 'bg-yellow-100 text-yellow-800';
+                return 'bg-green-100 text-green-800';
+            };
+
+            const addRiskRow = (risk) => {
+                const row = document.createElement('tr');
+                row.className = 'table-row-new fade-in';
+                row.dataset.id = risk.id;
+                const overallScore = risk.impact * risk.likelihood;
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-normal text-sm" data-field="risk">${risk.risk}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm" data-field="category">${risk.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm" data-field="impact">${risk.impact}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm" data-field="likelihood">${risk.likelihood}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(overallScore)}" data-field="overall">${overallScore}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-normal text-sm text-zinc-500" data-field="mitigation">${risk.mitigation}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center gap-2">
+                            <button class="text-green-600 hover:text-green-800" data-action="accept">✔</button>
+                            <button class="text-blue-600 hover:text-blue-800" data-action="edit">✏️</button>
+                            <button class="text-red-600 hover:text-red-800" data-action="delete">🗑️</button>
+                            <button class="hidden text-blue-600 hover:text-blue-800" data-action="save">💾</button>
+                        </div>
+                    </td>
+                `;
+                riskTableBody.appendChild(row);
+            };
+            
+            riskTableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const row = button.closest('tr');
+                const id = parseInt(row.dataset.id, 10);
+                
+                if (action === 'accept') {
+                    row.classList.remove('table-row-new');
+                    row.classList.add('table-row-accepted');
+                    button.parentElement.innerHTML = '<span class="text-sm text-green-700 font-semibold">Accepted</span>';
+                } else if (action === 'delete') {
+                    if (confirm('Are you sure you want to delete this risk?')) {
+                        row.remove();
+                        riskData = riskData.filter(r => r.id !== id);
+                        renderChart();
+                    }
+                } else if (action === 'edit') {
+                    row.querySelectorAll('[data-field]').forEach(cell => {
+                        if (['risk', 'category', 'impact', 'likelihood', 'mitigation'].includes(cell.dataset.field)) {
+                            cell.contentEditable = true;
+                            cell.classList.add('table-cell-editing');
+                        }
+                    });
+                    row.querySelector('[data-action="edit"]').classList.add('hidden');
+                    row.querySelector('[data-action="accept"]').classList.add('hidden');
+                    row.querySelector('[data-action="delete"]').classList.add('hidden');
+                    row.querySelector('[data-action="save"]').classList.remove('hidden');
+                } else if (action === 'save') {
+                    row.querySelectorAll('[data-field]').forEach(cell => {
+                        cell.contentEditable = false;
+                        cell.classList.remove('table-cell-editing');
+                    });
+                    
+                    const riskIndex = riskData.findIndex(r => r.id === id);
+                    if (riskIndex > -1) {
+                         const updatedRisk = { ...riskData[riskIndex] };
+                         updatedRisk.risk = row.querySelector('[data-field="risk"]').textContent;
+                         updatedRisk.category = row.querySelector('[data-field="category"]').textContent;
+                         updatedRisk.impact = parseInt(row.querySelector('[data-field="impact"]').textContent, 10);
+                         updatedRisk.likelihood = parseInt(row.querySelector('[data-field="likelihood"]').textContent, 10);
+                         updatedRisk.mitigation = row.querySelector('[data-field="mitigation"]').textContent;
+                         
+                         const newOverall = updatedRisk.impact * updatedRisk.likelihood;
+                         const overallCell = row.querySelector('[data-field="overall"]');
+                         overallCell.textContent = newOverall;
+                         overallCell.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(newOverall)}`;
+
+                         riskData[riskIndex] = updatedRisk;
+                         renderChart();
+                    }
+                    
+                    row.querySelector('[data-action="edit"]').classList.remove('hidden');
+                    row.querySelector('[data-action="accept"]').classList.remove('hidden');
+                    row.querySelector('[data-action="delete"]').classList.remove('hidden');
+                    row.querySelector('[data-action="save"]').classList.add('hidden');
+                }
+            });
+
+            function renderChart() {
+                const categoryCounts = riskData.reduce((acc, risk) => {
+                    acc[risk.category] = (acc[risk.category] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const labels = Object.keys(categoryCounts);
+                const data = Object.values(categoryCounts);
+
+                if (riskChart) {
+                    riskChart.data.labels = labels;
+                    riskChart.data.datasets[0].data = data;
+                    riskChart.update();
+                } else {
+                    const ctx = riskChartCanvas.getContext('2d');
+                    riskChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: '# of Risks',
+                                data: data,
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            exportBtn.addEventListener('click', () => {
+                alert('PDF export functionality would be implemented here.');
+            });
+
+        });
+    </script>
+</body>
+</html>
