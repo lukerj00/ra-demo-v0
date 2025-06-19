@@ -119,12 +119,32 @@
             <div id="reportContainer" class="bg-white p-8 rounded-xl shadow-lg border border-zinc-200">
                 <h2 id="reportTitle" class="text-2xl font-bold text-zinc-900 mb-6 text-center"></h2>
                 
-                <div id="summarySection" class="mb-8 hidden">
-                    <h3 class="text-xl font-semibold text-zinc-800 mb-3">Contextual Summary</h3>
-                    <div id="summaryContentWrapper" class="relative">
-                        <div id="summaryContent" class="text-sm text-zinc-700 leading-relaxed p-4 rounded-md bg-zinc-50 border border-zinc-200" contenteditable="false"></div>
-                        <span class="justification-plus-icon" id="summaryJustificationIcon" title="View Justification">+</span>
+                <div id="summarySection" class="hidden mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+                        
+                        <div class="md:col-span-2 flex flex-col">
+                            <h3 class="text-xl font-semibold text-zinc-800 mb-3">Contextual Summary</h3>
+                            <div id="summaryContentWrapper" class="relative flex-grow">
+                                <div id="summaryContent" class="text-sm text-zinc-700 leading-relaxed p-4 rounded-md bg-zinc-50 border border-zinc-200 h-full" contenteditable="false"></div>
+                                <span class="justification-plus-icon" id="summaryJustificationIcon" title="View Justification">+</span>
+                            </div>
+                        </div>
+
+                        <div id="rekonContextSection" class="hidden flex flex-col">
+                            <h3 class="text-xl font-semibold text-zinc-800 mb-3">RekonContext Index:</h3>
+                            <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-6 flex-grow">
+                                <div class="flex items-baseline gap-4 mb-3">
+                                    <div class="flex items-baseline">
+                                        <span id="rekonContextScore" class="text-5xl font-bold"></span>
+                                        <span class="text-3xl font-semibold text-zinc-500">/7</span>
+                                    </div>
+                                    <span id="rekonContextLevel" class="text-xl font-semibold text-zinc-700"></span>
+                                </div>
+                                <p id="rekonContextDescription" class="text-sm text-zinc-600 leading-relaxed"></p>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div id="summaryActions" class="mt-4 flex items-center gap-4 hidden">
                         <button id="acceptSummaryBtn" class="text-sm font-semibold text-green-600 hover:text-green-800 transition">✔ Accept</button>
                         <button id="editSummaryBtn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">✏️ Edit</button>

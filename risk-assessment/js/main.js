@@ -58,6 +58,12 @@ const { jsPDF } = window.jspdf;
             const rekonComplianceDescription = document.getElementById('rekonComplianceDescription');
             const rekonComplianceIcon = document.getElementById('rekonComplianceIcon');
 
+            // --- RekonContext Elements ---
+            const rekonContextSection = document.getElementById('rekonContextSection');
+            const rekonContextScore = document.getElementById('rekonContextScore');
+            const rekonContextLevel = document.getElementById('rekonContextLevel');
+            const rekonContextDescription = document.getElementById('rekonContextDescription');
+
             // --- Help Pane Elements ---
             const helpIconBtn = document.getElementById('helpIconBtn');
             const helpPane = document.getElementById('helpPane');
@@ -193,6 +199,7 @@ const { jsPDF } = window.jspdf;
 
                 riskTableBody.innerHTML = '';
                 riskTableSection.classList.add('hidden');
+                rekonContextSection.classList.add('hidden');
                 
                 rekonMetricsSection.classList.add('hidden');
 
@@ -294,6 +301,7 @@ const { jsPDF } = window.jspdf;
                 summarySection.classList.add('fade-in');
                 summaryContent.innerHTML = dynamicSummary;
                 summaryActions.classList.remove('hidden');
+                displayRekonContext();
                 progressBar.style.width = '20%';
 
                 aiStatus.textContent = "Awaiting summary review...";
@@ -516,13 +524,13 @@ const { jsPDF } = window.jspdf;
             };
 
             const REKON_RISK_LEVELS = {
-                1: { level: 'Negligible', description: 'Event poses minimal threat. No disruption expected. No action required beyond routine monitoring.' },
-                2: { level: 'Very Low', description: 'Minor risk exposure. Unlikely to cause disruption or require dedicated resources. Some mitigations advised.' },
-                3: { level: 'Low', description: 'Low-level risk profile. Limited potential for disruption. Some mitigations required, and active monitoring advised.' },
-                4: { level: 'Moderate', description: 'Moderate risk exposure. Potential for localized or short-term disruption. Mitigations and active monitoring required.' },
-                5: { level: 'High', description: 'Significant risk exposure. May disrupt operations or impact outcomes. Robust mitigations and active monitoring required.' },
-                6: { level: 'Very High', description: 'Severe risk profile. High likelihood of serious disruption or harm. Heavy mitigations and careful active monitoring required.' },
-                7: { level: 'Critical', description: 'Extreme risk exposure. Immediate or ongoing threat with major consequences. Extensive mitigations and careful active monitoring required.' }
+                1: { level: 'Negligible', details: ['Risks identified are procedural or minor in nature.', 'Impact on objectives is highly unlikely and would be insignificant.', 'Standard operational controls are sufficient for management.'] },
+                2: { level: 'Very Low', details: ['Identified risks have a low probability of occurring.', 'Potential impact is minor and could be easily absorbed.', 'Existing mitigation strategies require minimal active management.'] },
+                3: { level: 'Low', details: ['Risks are unlikely to occur but warrant monitoring.', 'Impact would be localized and have a limited effect on overall objectives.', 'Specific mitigation plans should be in place and reviewed periodically.'] },
+                4: { level: 'Moderate', details: ['Risks have a reasonable chance of occurring if not managed.', 'Potential impact could cause noticeable disruption and may require dedicated resources.', 'Active monitoring and defined mitigation actions are required.'] },
+                5: { level: 'High', details: ['Risks are likely to materialize without proactive intervention.', 'Impact could be significant, affecting key project outcomes or reputation.', 'Robust mitigation strategies must be implemented and closely tracked.'] },
+                6: { level: 'Very High', details: ['Risks are very likely to occur and could have a severe impact.', 'Potential for major disruption, financial loss, or harm is substantial.', 'Requires senior management attention and intensive mitigation efforts.'] },
+                7: { level: 'Critical', details: ['Risks are imminent or have an almost certain chance of occurring.', 'Impact would be critical, threatening project viability or causing extreme harm.', 'Immediate, comprehensive action and contingency planning are essential.'] }
             };
 
             const COMPLIANCE_ICONS = {
@@ -610,24 +618,46 @@ const { jsPDF } = window.jspdf;
             };
 
             const getRekonCompliance = (risks) => {
-                const hasSecurityRisks = risks.some(r => r.category === 'Security');
-                const hasHighImpactSecurityRisk = risks.some(r => r.category === 'Security' && r.impact >= 4);
+                const securityRisks = risks.filter(r => r.category === 'Security');
+                const highImpactSecurityRisks = securityRisks.filter(r => r.impact >= 4);
 
-                if (hasHighImpactSecurityRisk) {
+                if (highImpactSecurityRisks.length > 1) {
                     return {
-                        status: 'Compliant',
-                        description: "The assessment identifies significant security risks in line with regulatory expectations (e.g., Martyn's Law). The proposed mitigations, such as comprehensive screening and emergency service liaison, satisfy core compliance requirements for an event of this scale."
+                        status: 'Exceeds Compliance',
+                        details: [
+                            "Demonstrates a robust, multi-layered approach aligning with Martyn's Law.",
+                            "Integrates advanced threat intelligence in line with ProtectUK guidance.",
+                            "Proactively addresses information security with comprehensive controls (ISO 27001)."
+                        ]
                     };
                 }
-                if (hasSecurityRisks) {
+                if (highImpactSecurityRisks.length > 0) {
+                     return {
+                        status: 'Compliant',
+                        details: [
+                            "Assessment considers terrorist threats and proposes proportionate mitigations (Martyn's Law).",
+                            "Aligns with national guidance on threat detection and public safety (ProtectUK).",
+                            "Identifies key information-related risks as a basis for security controls (ISO 27001)."
+                        ]
+                    };
+                }
+                if (securityRisks.length > 0) {
                     return {
                         status: 'Compliant',
-                        description: "Security risks have been identified and mitigated. The assessment is broadly in line with standard compliance requirements for public events."
+                        details: [
+                            "Basic principles of public safety and security are considered (Martyn's Law).",
+                            "Some general security guidance has been acknowledged (ProtectUK).",
+                            "Initial steps taken to identify general risks, touching on information security (ISO 27001)."
+                        ]
                     };
                 }
                 return {
                     status: 'Non-Compliant',
-                    description: "The assessment fails to identify or mitigate key security risks, potentially falling short of regulatory requirements like Martyn's Law. A full review of security planning is urgently required."
+                    details: [
+                        "Key principles of terrorism risk assessment are not addressed (Martyn's Law).",
+                        "Fails to incorporate guidance on recognising and responding to threats (ProtectUK).",
+                        "Information security risks associated with the event are not considered (ISO 27001)."
+                    ]
                 };
             };
 
@@ -639,10 +669,21 @@ const { jsPDF } = window.jspdf;
                 rekonRiskScore.textContent = score;
                 rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
                 rekonRiskLevel.textContent = levelInfo.level;
-                rekonRiskDescription.textContent = levelInfo.description;
+                
+                const riskDescHtml = `
+                    <ul class="list-disc list-inside space-y-1 mt-2">
+                        ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `;
+                rekonRiskDescription.innerHTML = riskDescHtml;
 
                 rekonComplianceStatus.textContent = compliance.status;
-                rekonComplianceDescription.textContent = compliance.description;
+                const complianceDescHtml = `
+                    <ul class="list-disc list-inside space-y-1 mt-2">
+                        ${compliance.details.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `;
+                rekonComplianceDescription.innerHTML = complianceDescHtml;
                 rekonComplianceIcon.innerHTML = COMPLIANCE_ICONS[compliance.status] || '';
 
                 rekonComplianceStatus.className = 'text-2xl font-bold'; // Reset color class
@@ -800,42 +841,87 @@ const { jsPDF } = window.jspdf;
                     currentY += 5;
                 });
         
-                // Contextual Summary
+                // Contextual Summary & RekonContext
                 checkPageBreak(15);
                 currentY += 5;
+
+                const col1Width = contentWidth * 0.65;
+                const gap = contentWidth * 0.05;
+                const col2Width = contentWidth * 0.3;
+                const col2X = marginLeft + col1Width + gap;
+                
+                let initialY = currentY;
+
+                // Column 1: Contextual Summary
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFontSize(13);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Contextual Summary', marginLeft, currentY);
-                currentY += 8;
+                currentY += 6;
+
+                const summaryParagraphs = Array.from(summaryContent.querySelectorAll('p')).map(p => p.innerText);
+                const summaryText = summaryParagraphs.join('\n\n');
                 pdf.setFontSize(9);
                 pdf.setFont(undefined, 'normal');
-                const summaryParagraphs = Array.from(summaryContent.querySelectorAll('p'));
-                if (summaryParagraphs.length > 0) {
-                    summaryParagraphs.forEach((p, index) => {
-                        const summaryLines = pdf.splitTextToSize(p.innerText, contentWidth);
-                        summaryLines.forEach(line => {
-                            checkPageBreak(5);
-                            pdf.text(line, marginLeft, currentY);
-                            currentY += 5;
-                        });
-                        // Add space between paragraphs, but not after the last one
-                        if (index < summaryParagraphs.length - 1) {
-                            currentY += 3; 
-                        }
-                    });
-                } else {
-                    // Fallback for plain text or unexpected structure
-                    const summaryLines = pdf.splitTextToSize(summaryContent.innerText, contentWidth);
-                    summaryLines.forEach(line => {
-                        checkPageBreak(5);
-                        pdf.text(line, marginLeft, currentY);
-                        currentY += 5;
-                    });
-                }
-                currentY += 8;
+                pdf.setTextColor(51, 65, 85);
+                const summaryLines = pdf.splitTextToSize(summaryText, col1Width);
+                summaryLines.forEach(line => {
+                    checkPageBreak(5);
+                    pdf.text(line, marginLeft, currentY);
+                    currentY += 5;
+                });
+                const summaryFinalY = currentY;
+
+                // Column 2: RekonContext
+                let contextY = initialY;
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(13);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('RekonContext Index:', col2X, contextY);
+                contextY += 10;
+
+                const contextScore = getRekonContext(industryInput.value, typeInput.value, attendeesInput.value);
+                const contextInfo = REKON_CONTEXT_LEVELS[contextScore];
+                
+                // Draw score with color
+                const contextColor = getRekonRiskColorClass(contextScore);
+                if (contextColor === 'text-red-600') pdf.setTextColor(220, 38, 38);
+                else if (contextColor === 'text-yellow-600') pdf.setTextColor(202, 138, 4);
+                else pdf.setTextColor(22, 163, 74);
+                pdf.setFontSize(22);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(String(contextScore), col2X, contextY);
+
+                // Draw '/7' and level
+                let scoreWidth = pdf.getTextWidth(String(contextScore));
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFontSize(22);
+                pdf.text('/7', col2X + scoreWidth + 1, contextY);
+                let slash7Width = pdf.getTextWidth('/7');
+
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0,0,0);
+                pdf.text(`(${contextInfo.level})`, col2X + scoreWidth + slash7Width + 3, contextY);
+                contextY += 7;
+
+                // Draw description bullet points
+                const contextText = contextInfo.details.map(d => `• ${d}`).join('\n');
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                pdf.setTextColor(51, 65, 85);
+                const contextLines = pdf.splitTextToSize(contextText, col2Width);
+                contextLines.forEach(line => {
+                    checkPageBreak(5);
+                    pdf.text(line, col2X, contextY);
+                    contextY += 5;
+                });
+                const contextFinalY = contextY;
+
+                // Update currentY to the bottom of the taller column
+                currentY = Math.max(summaryFinalY, contextFinalY) + 8;
         
-                // Detailed Risk Table
+                // Detailed Risk Assessment Table
                 if (riskData.length > 0) {
                     checkPageBreak(20); 
                     pdf.setTextColor(0, 0, 0);
@@ -892,7 +978,7 @@ const { jsPDF } = window.jspdf;
                     const rekonRiskInfo = REKON_RISK_LEVELS[rekonRiskVal];
                     pdf.setFontSize(11);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('RekonRisk Index', marginLeft, currentY);
+                    pdf.text('RekonRisk Index:', marginLeft, currentY);
                     pdf.setFontSize(22);
                     pdf.setFont(undefined, 'bold');
                     const riskColor = getRekonRiskColorClass(rekonRiskVal);
@@ -909,7 +995,8 @@ const { jsPDF } = window.jspdf;
                     currentY += 7;
                     pdf.setFontSize(9);
                     pdf.setFont(undefined, 'normal');
-                    const riskDescLines = pdf.splitTextToSize(rekonRiskInfo.description, contentWidth);
+                    const riskDescText = rekonRiskInfo.details.map(d => `• ${d}`).join('\n');
+                    const riskDescLines = pdf.splitTextToSize(riskDescText, contentWidth);
                     riskDescLines.forEach(line => { checkPageBreak(5); pdf.text(line, marginLeft, currentY); currentY += 5; });
                     currentY += 8;
         
@@ -947,7 +1034,8 @@ const { jsPDF } = window.jspdf;
                     pdf.setFontSize(9);
                     pdf.setFont(undefined, 'normal');
         
-                    const complianceDescLines = pdf.splitTextToSize(rekonComplianceInfo.description, contentWidth);
+                    const complianceDescText = rekonComplianceInfo.details.map(d => `• ${d}`).join('\n');
+                    const complianceDescLines = pdf.splitTextToSize(complianceDescText, contentWidth);
                     complianceDescLines.forEach(line => {
                         checkPageBreak(5);
                         pdf.text(line, marginLeft, currentY);
@@ -989,4 +1077,63 @@ const { jsPDF } = window.jspdf;
             } else {
                 console.error("Close Help Pane Button (expected id 'closeHelpPaneBtn') not found.");
             }
+
+            const displayRekonContext = () => {
+                const industry = industryInput.value;
+                const type = typeInput.value;
+                const attendees = attendeesInput.value;
+        
+                const score = getRekonContext(industry, type, attendees);
+                const levelInfo = REKON_CONTEXT_LEVELS[score];
+        
+                rekonContextScore.textContent = score;
+                rekonContextScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                rekonContextLevel.textContent = levelInfo.level;
+                
+                // Create bullet points
+                const descriptionHtml = `
+                    <ul class="list-disc list-inside space-y-1 mt-2">
+                        ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `;
+                rekonContextDescription.innerHTML = descriptionHtml;
+        
+                rekonContextSection.classList.remove('hidden');
+            };
+
+            const REKON_CONTEXT_LEVELS = {
+                1: { level: 'Routine', details: ['Small-scale, localized event with straightforward logistics.', 'Low public profile with minimal media interest or social sensitivity.', 'Follows established, routine procedures with low regulatory oversight.'] },
+                2: { level: 'Elevated', details: ['Moderate scale, potentially involving multiple areas or a larger audience.', 'Some local media interest or a moderately sensitive theme/audience.', 'Standard event type requiring thorough planning and adherence to best practices.'] },
+                3: { level: 'Sensitive', details: ['Large or complex event requiring detailed coordination of resources and personnel.', 'High local profile or involves a known sensitive group, topic, or location.', 'Likely to be subject to specific stakeholder interest and requires clear communication strategies.'] },
+                4: { level: 'Significant', details: ['Very large-scale event with significant logistical challenges (e.g., transport, access).', 'Significant regional media attention and high potential for public or political sensitivity.', 'Carries historical or social importance; planning will be closely monitored by stakeholders.'] },
+                5: { level: 'Major', details: ['Major event with extensive logistical and resource demands, potentially impacting city services.', 'High-profile event attracting national media and public attention; may involve VIPs.', 'Sets a precedent for future events; subject to intense scrutiny from regulators and the public.'] },
+                6: { level: 'Critical', details: ['Critical infrastructure-level complexity, requiring multi-agency planning and city-wide integration.', 'Event of national importance with guaranteed, intense media coverage and high political sensitivity.', 'Involves matters of state or national security; planning subject to governmental-level oversight.'] },
+                7: { level: 'Extraordinary', details: ['Unprecedented scale and complexity, requiring novel solutions and extensive, exceptional resources.', 'Unique, historic event of global interest and significance; extreme sensitivity.', 'No direct precedent exists; involves exceptional circumstances demanding the highest level of planning and scrutiny.'] }
+            };
+
+            const getRekonContext = (industry, type, attendees) => {
+                let score = 1;
+                const numAttendees = parseInt(attendees, 10) || 0;
+        
+                // Score by industry
+                switch (industry) {
+                    case 'State': score += 3; break;
+                    case 'Sport': score += 2; break;
+                    case 'Music': score += 1; break;
+                    case 'Community': score += 1; break;
+                }
+        
+                // Score by attendees
+                if (numAttendees > 50000) score += 3;
+                else if (numAttendees > 10000) score += 2;
+                else if (numAttendees > 1000) score += 1;
+        
+                // Score by type
+                const highSensitivityTypes = ['VIP Visit / Dignitary Protection', 'Public Rally / Protest', 'Official Public Ceremony', 'State Funeral'];
+                if (highSensitivityTypes.includes(type)) {
+                    score += 2;
+                }
+                
+                return Math.min(score, 7); // Cap score at 7
+            };
         });
