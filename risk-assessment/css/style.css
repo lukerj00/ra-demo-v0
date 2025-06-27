@@ -174,4 +174,12 @@ body {
             background-color: #e4e4e7; /* Zinc 200 for hover */
             border-color: #a1a1aa; /* Zinc 400 for hover border */
             color: #18181b; /* Zinc 900 for hover text */
-        } 
+        }
+
+        /* Line clamp utility for event card description */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }

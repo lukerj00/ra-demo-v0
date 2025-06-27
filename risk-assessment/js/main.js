@@ -5,13 +5,15 @@ const { jsPDF } = window.jspdf;
             const screen1 = document.getElementById('screen1');
             const screen2 = document.getElementById('screen2');
             const setupForm = document.getElementById('setupForm');
-            const projectNameInput = document.getElementById('projectName');
-            const responsiblePersonInput = document.getElementById('responsiblePerson');
+            const eventTitleInput = document.getElementById('eventTitle');
             const eventDateInput = document.getElementById('eventDate');
-            const attendeesInput = document.getElementById('attendees');
-            const industryInput = document.getElementById('industry');
-            const typeContainer = document.getElementById('type-container');
-            const typeInput = document.getElementById('type');
+            const locationInput = document.getElementById('location');
+            const attendanceInput = document.getElementById('attendance');
+            const eventTypeInput = document.getElementById('eventType');
+            const venueTypeContainer = document.getElementById('venueType-container');
+            const venueTypeInput = document.getElementById('venueType');
+            const riskLevelInput = document.getElementById('riskLevel');
+            const descriptionInput = document.getElementById('description');
             const generateBtn = document.getElementById('generateBtn');
             
             const reportScreenTitle = document.getElementById('reportScreenTitle');
@@ -19,6 +21,17 @@ const { jsPDF } = window.jspdf;
             const aiStatus = document.getElementById('aiStatus');
             const progressBar = document.getElementById('progressBar');
             const goBackBtn = document.getElementById('goBackBtn');
+
+            // Event Card Elements
+            const eventCard = document.getElementById('eventCard');
+            const cardEventTitle = document.getElementById('cardEventTitle');
+            const cardEventDate = document.getElementById('cardEventDate');
+            const cardLocation = document.getElementById('cardLocation');
+            const cardAttendance = document.getElementById('cardAttendance');
+            const cardEventType = document.getElementById('cardEventType');
+            const cardVenueType = document.getElementById('cardVenueType');
+            const cardRiskLevel = document.getElementById('cardRiskLevel');
+            const cardDescription = document.getElementById('cardDescription');
             
             const reportContainer = document.getElementById('reportContainer');
             const summarySection = document.getElementById('summarySection');
@@ -134,37 +147,61 @@ const { jsPDF } = window.jspdf;
             // The actual export will ensure it waits.
             preloadLogo().catch(err => console.warn("Initial logo preload failed, will retry on export:", err));
 
-            industryInput.addEventListener('change', (e) => {
-                const selectedIndustry = e.target.value;
-                
-                typeInput.innerHTML = '';
-            
-                if (selectedIndustry && typeOptions[selectedIndustry]) {
-                    typeContainer.classList.remove('hidden');
-                    
-                    const defaultOption = document.createElement('option');
-                    defaultOption.textContent = 'Select a Type';
-                    defaultOption.value = '';
-                    typeInput.appendChild(defaultOption);
-            
-                    typeOptions[selectedIndustry].forEach(type => {
-                        const option = document.createElement('option');
-                        option.textContent = type;
-                        option.value = type;
-                        typeInput.appendChild(option);
-                    });
-                } else {
-                    typeContainer.classList.add('hidden');
-                }
-            });
+
 
             // --- Form & File Upload Logic ---
             const validateForm = () => {
-                generateBtn.disabled = !projectNameInput.value.trim() || !eventDateInput.value;
+                const requiredFields = [
+                    eventTitleInput.value.trim(),
+                    eventDateInput.value,
+                    locationInput.value.trim(),
+                    attendanceInput.value,
+                    eventTypeInput.value
+                ];
+
+                // Only require venue type if it's visible (i.e., event type is selected)
+                const isVenueTypeVisible = !venueTypeContainer.classList.contains('hidden');
+                if (isVenueTypeVisible) {
+                    requiredFields.push(venueTypeInput.value);
+                }
+
+                generateBtn.disabled = !requiredFields.every(field => field);
             };
 
-            projectNameInput.addEventListener('input', validateForm);
+            eventTitleInput.addEventListener('input', validateForm);
             eventDateInput.addEventListener('input', validateForm);
+            locationInput.addEventListener('input', validateForm);
+            attendanceInput.addEventListener('input', validateForm);
+            eventTypeInput.addEventListener('input', validateForm);
+            venueTypeInput.addEventListener('input', validateForm);
+
+            // Event Type change handler to populate Venue Type dropdown
+            eventTypeInput.addEventListener('change', (e) => {
+                const selectedEventType = e.target.value;
+
+                venueTypeInput.innerHTML = '';
+
+                if (selectedEventType && typeOptions[selectedEventType]) {
+                    venueTypeContainer.classList.remove('hidden');
+
+                    const defaultOption = document.createElement('option');
+                    defaultOption.textContent = 'Select Venue Type';
+                    defaultOption.value = '';
+                    venueTypeInput.appendChild(defaultOption);
+
+                    typeOptions[selectedEventType].forEach(type => {
+                        const option = document.createElement('option');
+                        option.textContent = type;
+                        option.value = type;
+                        venueTypeInput.appendChild(option);
+                    });
+                } else {
+                    venueTypeContainer.classList.add('hidden');
+                }
+
+                // Re-validate form after venue type options change
+                validateForm();
+            });
 
             const handleFiles = (files) => {
                 fileList.innerHTML = '';
@@ -252,8 +289,53 @@ const { jsPDF } = window.jspdf;
                 }
             };
 
+            const populateEventCard = () => {
+                // Populate event card with form data
+                cardEventTitle.textContent = eventTitleInput.value.trim() || 'N/A';
+                cardEventDate.textContent = eventDateInput.value ?
+                    new Date(eventDateInput.value).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }) : 'N/A';
+                cardLocation.textContent = locationInput.value.trim() || 'N/A';
+                cardAttendance.textContent = attendanceInput.value ?
+                    `${parseInt(attendanceInput.value).toLocaleString()} people` : 'N/A';
+
+                cardEventType.textContent = eventTypeInput.value || 'N/A';
+
+                cardVenueType.textContent = venueTypeInput.value || 'N/A';
+
+                const riskLevelValue = riskLevelInput.value;
+                if (riskLevelValue) {
+                    const riskLevelText = riskLevelInput.options[riskLevelInput.selectedIndex].text;
+                    cardRiskLevel.textContent = riskLevelText;
+                    cardRiskLevel.className = `text-sm font-semibold mt-1 ${getRiskLevelColor(riskLevelValue)}`;
+                } else {
+                    cardRiskLevel.textContent = 'Not assessed';
+                    cardRiskLevel.className = 'text-sm font-semibold mt-1 text-zinc-500';
+                }
+
+                cardDescription.textContent = descriptionInput.value.trim() || 'No description provided';
+
+                // Show the event card
+                eventCard.classList.remove('hidden');
+                eventCard.classList.add('fade-in');
+            };
+
+            const getRiskLevelColor = (level) => {
+                switch(level) {
+                    case '1': return 'text-green-600';
+                    case '2': return 'text-green-500';
+                    case '3': return 'text-yellow-600';
+                    case '4': return 'text-orange-600';
+                    case '5': return 'text-red-600';
+                    default: return 'text-zinc-500';
+                }
+            };
+
             const startGeneration = async () => {
-                currentProjectName = projectNameInput.value.trim();
+                currentProjectName = eventTitleInput.value.trim();
                 screen1.classList.add('hidden');
                 reportScreenTitle.textContent = `aiRekon Automated Risk Assessment`;
 
@@ -265,6 +347,10 @@ const { jsPDF } = window.jspdf;
                     }
                 }
                 reportTitle.textContent = `Risk Assessment Report for: ${currentProjectName} on ${eventDateFormatted}`;
+
+                // Populate Event Card
+                populateEventCard();
+
                 screen2.classList.remove('hidden');
                 resetScreen2();
 
@@ -273,21 +359,20 @@ const { jsPDF } = window.jspdf;
                 await sleep(1000);
                 
                 const eventDateValue = eventDateInput.value ? new Date(eventDateInput.value).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'an unspecified date';
-                const industryValue = document.getElementById('industry').value || 'general';
-                const typeValue = document.getElementById('type').value;
-                const scopeValue = document.getElementById('projectScope').value.trim();
-                const attendeesNumValue = attendeesInput.value;
+                const eventTypeValue = eventTypeInput.value || 'general';
+                const descriptionValue = descriptionInput.value.trim();
+                const attendanceNumValue = attendanceInput.value;
 
                 let attendeesString = "";
-                if (attendeesNumValue && parseInt(attendeesNumValue) > 0) {
-                    attendeesString = `It is anticipated to involve approximately ${attendeesNumValue} attendees. `;
+                if (attendanceNumValue && parseInt(attendanceNumValue) > 0) {
+                    attendeesString = `It is anticipated to involve approximately ${attendanceNumValue} attendees. `;
                 } else {
                     attendeesString = "The scale of attendance is not specified. ";
                 }
 
-                const projectScopeString = scopeValue ? scopeValue : "achieving its stated goals as outlined in the project documentation";
-                const projectNatureString = scopeValue ? `the specifics of '${scopeValue.substring(0, 50)}${scopeValue.length > 50 ? '...' : ''}' and the context of the ${industryValue} sector` : `its general operational requirements and the context of the ${industryValue} sector`;
-                const projectTypeString = (typeValue && typeValue !== '') ? `${typeValue}` : `${industryValue} initiative`;
+                const projectScopeString = descriptionValue ? descriptionValue : "achieving its stated goals as outlined in the event documentation";
+                const projectNatureString = descriptionValue ? `the specifics of '${descriptionValue.substring(0, 50)}${descriptionValue.length > 50 ? '...' : ''}' and the context of the ${eventTypeValue} event` : `its general operational requirements and the context of the ${eventTypeValue} event`;
+                const projectTypeString = `${eventTypeValue} event`;
 
                 let dynamicSummary = MOCK_SUMMARY_TEMPLATE
                     .replace(/{projectName}/g, currentProjectName)
@@ -828,12 +913,13 @@ const { jsPDF } = window.jspdf;
                 pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
                 const projectInfo = [
-                    `Project Name: ${currentProjectName || 'N/A'}`,
-                    `Responsible Person: ${responsiblePersonInput.value.trim() || 'N/A'}`,
-                    `Date of Event: ${eventDateInput.value ? new Date(eventDateInput.value).toLocaleDateString('en-GB') : 'N/A'}`,
-                    `Number of Attendees: ${attendeesInput.value || 'N/A'}`,
-                    `Industry/Sector: ${document.getElementById('industry').value || 'N/A'}`,
-                    `Type: ${document.getElementById('type').value || 'N/A'}`
+                    `Event Title: ${eventTitleInput.value.trim() || 'N/A'}`,
+                    `Event Date: ${eventDateInput.value ? new Date(eventDateInput.value).toLocaleDateString('en-GB') : 'N/A'}`,
+                    `Location: ${locationInput.value.trim() || 'N/A'}`,
+                    `Attendance: ${attendanceInput.value ? parseInt(attendanceInput.value).toLocaleString() + ' people' : 'N/A'}`,
+                    `Event Type: ${eventTypeInput.value || 'N/A'}`,
+                    `Venue Type: ${venueTypeInput.value || 'N/A'}`,
+                    `Risk Level: ${riskLevelInput.value ? riskLevelInput.options[riskLevelInput.selectedIndex].text : 'Not assessed'}`
                 ];
                 projectInfo.forEach(detail => {
                     checkPageBreak(5);
@@ -880,7 +966,7 @@ const { jsPDF } = window.jspdf;
                 pdf.text('RekonContext Index:', col2X, contextY);
                 contextY += 10;
 
-                const contextScore = getRekonContext(industryInput.value, typeInput.value, attendeesInput.value);
+                const contextScore = getRekonContext(eventTypeInput.value, venueTypeInput.value, attendanceInput.value);
                 const contextInfo = REKON_CONTEXT_LEVELS[contextScore];
                 
                 // Draw score with color
@@ -1079,11 +1165,11 @@ const { jsPDF } = window.jspdf;
             }
 
             const displayRekonContext = () => {
-                const industry = industryInput.value;
-                const type = typeInput.value;
-                const attendees = attendeesInput.value;
-        
-                const score = getRekonContext(industry, type, attendees);
+                const eventType = eventTypeInput.value;
+                const venueType = venueTypeInput.value;
+                const attendance = attendanceInput.value;
+
+                const score = getRekonContext(eventType, venueType, attendance);
                 const levelInfo = REKON_CONTEXT_LEVELS[score];
         
                 rekonContextScore.textContent = score;
