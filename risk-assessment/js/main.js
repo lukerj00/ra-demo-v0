@@ -69,6 +69,12 @@ const { jsPDF } = window.jspdf;
             const rekonRiskLevel = document.getElementById('rekonRiskLevel');
             const rekonRiskDescription = document.getElementById('rekonRiskDescription');
             const rekonComplianceStatus = document.getElementById('rekonComplianceStatus');
+            const generateMoreBtn = document.getElementById('generateMoreBtn');
+            const addCustomRiskBtn = document.getElementById('addCustomRiskBtn');
+            const customRiskModal = document.getElementById('customRiskModal');
+            const closeCustomRiskModal = document.getElementById('closeCustomRiskModal');
+            const cancelCustomRisk = document.getElementById('cancelCustomRisk');
+            const customRiskForm = document.getElementById('customRiskForm');
             const rekonComplianceDescription = document.getElementById('rekonComplianceDescription');
             const rekonComplianceIcon = document.getElementById('rekonComplianceIcon');
 
@@ -87,6 +93,7 @@ const { jsPDF } = window.jspdf;
             let riskData = [];
             let currentProjectName = "";
             let aiRekonLogoBase64 = null; // To store the base64 logo for PDF
+            let currentConversationId = null; // Store conversation ID for additional risks
 
             // --- Simple State Management ---
             let applicationState = {
@@ -315,25 +322,35 @@ const { jsPDF } = window.jspdf;
                         description: descriptionInput.value.trim()
                     };
 
-                    aiStatus.textContent = "AI is starting risk assessment conversation...";
+                    aiStatus.textContent = "AI is analyzing event for critical risks...";
 
                     try {
-                        // Start a conversation with the AI for diverse risk generation
+                        // Start a conversation with the AI for importance-based risk generation
                         const conversationId = await aiService.startRiskConversation(eventData);
+                        currentConversationId = conversationId; // Store for additional risks
                         console.log(`🤖 Started risk conversation: ${conversationId}`);
 
-                        // Generate risks progressively using conversation context
+                        // Generate risks progressively in order of importance
                         const totalRisks = 6;
+                        const importanceLabels = [
+                            "most critical",
+                            "second most critical",
+                            "third most critical",
+                            "fourth most critical",
+                            "fifth most critical",
+                            "sixth most critical"
+                        ];
 
                         for (let i = 1; i <= totalRisks; i++) {
                             const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
                             progressBar.style.width = `${progress}%`;
-                            aiStatus.textContent = `AI is generating diverse risk ${i} of ${totalRisks}...`;
+                            const importanceLabel = importanceLabels[i-1] || `risk ${i}`;
+                            aiStatus.textContent = `AI is identifying ${importanceLabel} risk...`;
 
                             // Update table loader text to show current risk being generated
                             const tableLoaderText = document.querySelector('#tableLoader p');
                             if (tableLoaderText) {
-                                tableLoaderText.textContent = `AI is generating diverse risk ${i} of ${totalRisks}...`;
+                                tableLoaderText.textContent = `AI is identifying ${importanceLabel} risk...`;
                             }
 
                             try {
@@ -344,7 +361,7 @@ const { jsPDF } = window.jspdf;
                                 addRiskRow(risk);
 
                                 // Add to risk data with justification fields
-                                riskData.push({
+                                const riskWithJustifications = {
                                     ...risk,
                                     justifications: {
                                         risk: null,
@@ -354,7 +371,11 @@ const { jsPDF } = window.jspdf;
                                         mitigation: null,
                                         overall: null
                                     }
-                                });
+                                };
+                                riskData.push(riskWithJustifications);
+
+                                // Pre-generate justifications in background (don't wait)
+                                preGenerateJustifications(riskWithJustifications, eventData);
 
                                 // Brief pause to let user see the new row
                                 await sleep(400);
@@ -552,6 +573,9 @@ const { jsPDF } = window.jspdf;
                     // Update state to indicate summary is generated
                     updateApplicationState({ summaryGenerated: true });
 
+                    // Pre-generate summary justification in background
+                    preGenerateSummaryJustification(eventData);
+
                     // Show actions
                     summaryActions.classList.remove('hidden');
                     displayRekonContext();
@@ -620,7 +644,140 @@ const { jsPDF } = window.jspdf;
                 });
                 acceptAllBtn.disabled = true;
                 checkAndDisplayMetrics();
-            });            
+            });
+
+            // --- Generate More Risks ---
+            generateMoreBtn.addEventListener('click', async () => {
+                if (!currentConversationId) {
+                    alert('No active conversation found. Please generate initial risks first.');
+                    return;
+                }
+
+                generateMoreBtn.disabled = true;
+                generateMoreBtn.textContent = 'Generating...';
+
+                // Show status for importance-based additional risks
+                const currentRiskCount = riskData.length;
+                const importanceLabels = [
+                    "7th most critical",
+                    "8th most critical",
+                    "9th most critical"
+                ];
+
+                console.log(`🔄 Generating additional risks starting from #${currentRiskCount + 1} (continuing importance ranking)`);
+
+                try {
+                    const additionalRisks = await aiService.generateAdditionalRisks(
+                        currentConversationId,
+                        riskData,
+                        3
+                    );
+
+                    // Add each additional risk to the table
+                    for (const risk of additionalRisks) {
+                        addRiskRow(risk);
+                        const riskWithJustifications = {
+                            ...risk,
+                            justifications: {
+                                risk: null,
+                                category: null,
+                                impact: null,
+                                likelihood: null,
+                                mitigation: null,
+                                overall: null
+                            }
+                        };
+                        riskData.push(riskWithJustifications);
+
+                        // Pre-generate justifications for additional risk
+                        const eventData = {
+                            eventTitle: eventTitleInput.value.trim(),
+                            eventType: eventTypeInput.value,
+                            venueType: venueTypeInput.value,
+                            attendance: attendanceInput.value,
+                            location: locationInput.value.trim()
+                        };
+                        preGenerateJustifications(riskWithJustifications, eventData);
+
+                        await sleep(300); // Brief pause between additions
+                    }
+
+                    console.log(`✅ Added ${additionalRisks.length} additional risks (continuing importance ranking from #${currentRiskCount + 1})`);
+                } catch (error) {
+                    console.error('Error generating additional risks:', error);
+                    alert('Failed to generate additional risks. Please try again.');
+                } finally {
+                    generateMoreBtn.disabled = false;
+                    generateMoreBtn.textContent = '+ Generate More Risks';
+                }
+            });
+
+            // --- Add Custom Risk ---
+            addCustomRiskBtn.addEventListener('click', () => {
+                customRiskModal.classList.remove('hidden');
+            });
+
+            closeCustomRiskModal.addEventListener('click', () => {
+                customRiskModal.classList.add('hidden');
+                customRiskForm.reset();
+            });
+
+            cancelCustomRisk.addEventListener('click', () => {
+                customRiskModal.classList.add('hidden');
+                customRiskForm.reset();
+            });
+
+            customRiskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const customRisk = {
+                    id: riskData.length + 1,
+                    risk: document.getElementById('customRiskDescription').value.trim(),
+                    category: document.getElementById('customRiskCategory').value,
+                    impact: parseInt(document.getElementById('customRiskImpact').value),
+                    likelihood: parseInt(document.getElementById('customRiskLikelihood').value),
+                    mitigation: document.getElementById('customRiskMitigation').value.trim()
+                };
+
+                // Add the custom risk to the table
+                addRiskRow(customRisk);
+                const customRiskWithJustifications = {
+                    ...customRisk,
+                    justifications: {
+                        risk: null,
+                        category: null,
+                        impact: null,
+                        likelihood: null,
+                        mitigation: null,
+                        overall: null
+                    }
+                };
+                riskData.push(customRiskWithJustifications);
+
+                // Pre-generate justifications for custom risk
+                const eventData = {
+                    eventTitle: eventTitleInput.value.trim(),
+                    eventType: eventTypeInput.value,
+                    venueType: venueTypeInput.value,
+                    attendance: attendanceInput.value,
+                    location: locationInput.value.trim()
+                };
+                preGenerateJustifications(customRiskWithJustifications, eventData);
+
+                // Close modal and reset form
+                customRiskModal.classList.add('hidden');
+                customRiskForm.reset();
+
+                console.log('✅ Added custom risk:', customRisk.risk);
+            });
+
+            // Close modal when clicking outside
+            customRiskModal.addEventListener('click', (e) => {
+                if (e.target === customRiskModal) {
+                    customRiskModal.classList.add('hidden');
+                    customRiskForm.reset();
+                }
+            });
 
             // --- Table & Chart Logic ---
             const getScoreColor = (score) => {
@@ -1080,6 +1237,84 @@ const { jsPDF } = window.jspdf;
                     };
 
                     updateJustificationContent(fallbackReasoning, fallbackSources);
+                }
+            };
+
+            // Pre-generate justifications for all fields of a risk in background
+            const preGenerateJustifications = async (riskData, eventData) => {
+                const fieldMap = {
+                    'Risk Description': 'risk',
+                    'Category': 'category',
+                    'Impact': 'impact',
+                    'Likelihood': 'likelihood',
+                    'Mitigations': 'mitigation',
+                    'Overall Score': 'overall'
+                };
+
+                const context = {
+                    eventTitle: eventData.eventTitle,
+                    eventType: eventData.eventType,
+                    venueType: eventData.venueType,
+                    attendance: eventData.attendance,
+                    location: eventData.location,
+                    riskDescription: riskData.risk,
+                    riskCategory: riskData.category,
+                    riskImpact: riskData.impact,
+                    riskLikelihood: riskData.likelihood,
+                    riskMitigation: riskData.mitigation
+                };
+
+                // Generate justifications for key fields in background
+                const fieldsToPreGenerate = [
+                    { name: 'Risk Description', value: riskData.risk, key: 'risk' },
+                    { name: 'Impact', value: riskData.impact.toString(), key: 'impact' },
+                    { name: 'Likelihood', value: riskData.likelihood.toString(), key: 'likelihood' },
+                    { name: 'Overall Score', value: (riskData.impact * riskData.likelihood).toString(), key: 'overall' }
+                ];
+
+                // Generate justifications asynchronously without blocking UI
+                fieldsToPreGenerate.forEach(async (field) => {
+                    try {
+                        const justification = await aiService.generateJustification(
+                            field.name,
+                            field.value,
+                            context
+                        );
+
+                        // Store the justification
+                        if (!riskData.justifications) {
+                            riskData.justifications = {};
+                        }
+                        riskData.justifications[field.key] = {
+                            reasoning: justification.reasoning,
+                            sources: justification.sources
+                        };
+
+                        console.log(`🔄 Pre-generated justification for ${field.name} = "${field.value}"`);
+                    } catch (error) {
+                        console.error(`Error pre-generating justification for ${field.name}:`, error);
+                    }
+                });
+            };
+
+            // Pre-generate summary justification in background
+            const preGenerateSummaryJustification = async (eventData) => {
+                try {
+                    const justification = await aiService.generateJustification(
+                        'Contextual Summary',
+                        summaryContent.innerHTML,
+                        eventData
+                    );
+
+                    // Store the justification in application state
+                    applicationState.summaryJustification = {
+                        reasoning: justification.reasoning,
+                        sources: justification.sources
+                    };
+
+                    console.log('🔄 Pre-generated justification for Contextual Summary');
+                } catch (error) {
+                    console.error('Error pre-generating summary justification:', error);
                 }
             };
 

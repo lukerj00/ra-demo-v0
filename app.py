@@ -261,6 +261,77 @@ def generate_next_risk():
         logger.error(f"Error generating next risk: {str(e)}")
         return jsonify({"error": f"Failed to generate next risk: {str(e)}"}), 500
 
+@app.route('/api/ai/generate-additional-risks', methods=['POST'])
+def generate_additional_risks():
+    """Generate additional risks for an existing assessment"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        conversation_id = data.get('conversation_id')
+        existing_risks = data.get('existing_risks', [])
+        num_additional = data.get('num_additional', 3)
+
+        if not conversation_id or conversation_id not in risk_conversations:
+            return jsonify({"error": "Invalid or expired conversation ID"}), 400
+
+        conversation = risk_conversations[conversation_id]
+        additional_risks = []
+
+        # Generate additional risks
+        for i in range(num_additional):
+            risk_number = len(conversation['generated_risks']) + i + 1
+
+            # Build prompt for additional risk that continues importance ranking
+            additional_risk_prompt = build_additional_risk_prompt(
+                conversation['generated_risks'] + additional_risks,
+                risk_number
+            )
+
+            # Add context reminder about importance ranking
+            importance_reminder = f"""Remember: You are continuing the importance-based risk assessment. The first 6 risks were the most critical. Now generate risk #{risk_number} which should be the next most important concern for this specific event."""
+
+            # Add the request to conversation with importance context
+            conversation['messages'].append({
+                "role": "user",
+                "content": f"{importance_reminder}\n\n{additional_risk_prompt}"
+            })
+
+            # Make request to OpenAI
+            response = client.chat.completions.create(
+                model="gpt-4o-mini-2024-07-18",
+                messages=conversation['messages'],
+                temperature=0.8,
+                max_tokens=400
+            )
+
+            content = response.choices[0].message.content.strip()
+
+            # Add AI response to conversation
+            conversation['messages'].append({
+                "role": "assistant",
+                "content": content
+            })
+
+            try:
+                risk = json.loads(content)
+                validated_risk = validate_and_format_single_risk(risk, risk_number)
+                additional_risks.append(validated_risk)
+                conversation['generated_risks'].append(validated_risk)
+
+                logger.info(f"Generated additional risk {risk_number}: {validated_risk['risk'][:50]}...")
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse additional risk JSON: {e}")
+                continue
+
+        return jsonify({"risks": additional_risks})
+
+    except Exception as e:
+        logger.error(f"Error generating additional risks: {str(e)}")
+        return jsonify({"error": f"Failed to generate additional risks: {str(e)}"}), 500
+
 @app.route('/api/ai/generate-single-risk', methods=['POST'])
 def generate_single_risk():
     """Generate a single risk for progressive loading (legacy endpoint)"""
@@ -418,21 +489,33 @@ Return only the JSON array, no additional text or formatting."""
 
 def build_risk_conversation_system_prompt():
     """Build system prompt for risk conversation"""
-    return """You are an expert risk assessment consultant conducting a comprehensive risk analysis. Your task is to generate diverse, unique risks for events, ensuring each risk covers different aspects and categories.
+    return """You are an expert risk assessment consultant conducting a comprehensive risk analysis. Your task is to generate risks in ORDER OF IMPORTANCE - starting with the MOST CRITICAL risks first.
 
-IMPORTANT GUIDELINES:
-1. Generate DIVERSE risks - avoid repetition or similar themes
-2. Cover different categories: Crowd Safety, Environmental, Security, Medical, Operational, Logistics
-3. Vary impact and likelihood levels to create a realistic risk profile
-4. Each risk should address different aspects of the event
-5. Provide specific, actionable mitigation strategies
-6. Return ONLY valid JSON format: {"id": number, "risk": "description", "category": "category", "impact": number, "likelihood": number, "mitigation": "strategy"}
+CRITICAL GUIDELINES:
+1. Generate risks in DESCENDING ORDER OF IMPORTANCE (most critical → least critical)
+2. Each risk must be HIGHLY SPECIFIC to the actual event type, venue, and circumstances
+3. Consider the REAL-WORLD implications of this specific event
+4. Risk #1 = HIGHEST PRIORITY (most likely to cause serious harm/disruption)
+5. Risk #2 = SECOND HIGHEST PRIORITY, and so on
+6. Ensure DIVERSITY across categories: Crowd Safety, Environmental, Security, Medical, Operational, Logistics
+7. Impact and likelihood should reflect REALISTIC assessment for this specific event
+8. Mitigation strategies must be ACTIONABLE and event-specific
 
-You will be asked to generate risks one by one. Each request will specify which risk number you're generating. Make sure each subsequent risk is COMPLETELY DIFFERENT from previous ones and covers new risk areas."""
+IMPORTANCE RANKING CRITERIA:
+- Potential for serious injury/death
+- Likelihood of occurrence for THIS event type
+- Scale of potential disruption
+- Legal/regulatory consequences
+- Financial impact
+- Reputational damage
+
+Return ONLY valid JSON format: {"id": number, "risk": "description", "category": "category", "impact": number, "likelihood": number, "mitigation": "strategy"}
+
+You will generate risks one by one, with each being the NEXT MOST IMPORTANT risk for this specific event."""
 
 def build_event_context_message(event_data):
     """Build initial event context message"""
-    return f"""I need a comprehensive risk assessment for the following event:
+    return f"""I need a comprehensive risk assessment for the following event, with risks ranked by IMPORTANCE:
 
 Event Details:
 - Title: {event_data.get('eventTitle', 'N/A')}
@@ -443,12 +526,26 @@ Event Details:
 - Venue Type: {event_data.get('venueType', 'N/A')}
 - Description: {event_data.get('description', 'Not provided')}
 
-I will ask you to generate 6-8 different risks, one at a time. Each risk must be unique and cover different aspects of event management and safety. Please ensure variety in categories, impact levels, and likelihood scores."""
+CRITICAL REQUIREMENTS:
+1. Generate risks in ORDER OF IMPORTANCE (most critical first)
+2. Each risk must be HIGHLY SPECIFIC to this exact event type and circumstances
+3. Consider what would ACTUALLY be the biggest concerns for event organizers
+4. Think about real-world scenarios that could occur at THIS specific event
+5. Ensure each risk is ACTIONABLE and REALISTIC
+
+I will ask you to generate 6 risks, starting with the MOST CRITICAL and working down to less critical but still important risks. Each should represent what would genuinely be the next biggest concern for this specific event."""
 
 def build_next_risk_prompt(previous_risks, risk_number):
-    """Build prompt for next risk that avoids previous ones"""
+    """Build prompt for next risk in order of importance"""
     if not previous_risks:
-        return f"""Generate risk #{risk_number}. Focus on the HIGHEST PRIORITY risk for this event type. This should be a critical safety or operational concern.
+        return f"""Generate the MOST CRITICAL risk (#1) for this specific event.
+
+This should be the HIGHEST PRIORITY risk that:
+- Has the greatest potential for serious harm or major disruption
+- Is most likely to occur given this event type and circumstances
+- Would have the most severe consequences if it happened
+
+Consider the specific event details (type, venue, attendance, location) to identify what poses the greatest actual threat.
 
 Return only valid JSON format."""
 
@@ -456,25 +553,68 @@ Return only valid JSON format."""
     covered_categories = [risk['category'] for risk in previous_risks]
     covered_themes = [risk['risk'][:50] + "..." for risk in previous_risks]
 
-    priority_guidance = {
-        1: "HIGHEST PRIORITY - Critical safety or security risk",
-        2: "HIGH PRIORITY - Major operational or crowd safety risk",
-        3: "MEDIUM-HIGH PRIORITY - Important logistical or environmental risk",
-        4: "MEDIUM PRIORITY - Significant but manageable risk",
-        5: "MEDIUM-LOW PRIORITY - Important secondary risk",
-        6: "STANDARD PRIORITY - Additional risk consideration"
+    importance_guidance = {
+        1: "MOST CRITICAL - The single highest priority risk",
+        2: "SECOND MOST CRITICAL - Next highest priority after #1",
+        3: "THIRD MOST CRITICAL - Major concern but less critical than #1-2",
+        4: "FOURTH MOST CRITICAL - Significant risk requiring attention",
+        5: "FIFTH MOST CRITICAL - Important but lower priority",
+        6: "SIXTH MOST CRITICAL - Additional risk to consider"
     }
 
-    return f"""Generate risk #{risk_number}. {priority_guidance.get(risk_number, 'STANDARD PRIORITY - Additional risk consideration')}
+    return f"""Generate the {importance_guidance.get(risk_number, 'NEXT MOST CRITICAL')} risk (#{risk_number}) for this specific event.
 
-ALREADY COVERED CATEGORIES: {', '.join(set(covered_categories))}
-ALREADY COVERED THEMES: {'; '.join(covered_themes)}
+PREVIOUS RISKS ALREADY IDENTIFIED:
+{chr(10).join([f"#{i+1}: {risk['risk'][:80]}... (Category: {risk['category']}, Impact: {risk['impact']}, Likelihood: {risk['likelihood']})" for i, risk in enumerate(previous_risks)])}
 
-Generate a COMPLETELY DIFFERENT risk that:
-1. Uses a DIFFERENT category if possible (prefer unused: {', '.join(['Crowd Safety', 'Environmental', 'Security', 'Medical', 'Operational', 'Logistics'])})
-2. Addresses a DIFFERENT aspect of the event
-3. Has DIFFERENT impact/likelihood levels than previous risks
-4. Covers NEW concerns not mentioned before
+For risk #{risk_number}, identify the NEXT MOST IMPORTANT risk that:
+1. Is DIFFERENT from all previous risks (avoid similar themes/categories if possible)
+2. Is HIGHLY SPECIFIC to this event type and circumstances
+3. Represents a REALISTIC and SIGNIFICANT threat
+4. Would rank as the #{risk_number} most important concern for event organizers
+5. Has appropriate impact/likelihood scores for its importance level
+
+Focus on what would ACTUALLY be the next biggest concern for this specific event after the risks already identified.
+
+Return only valid JSON format."""
+
+def build_additional_risk_prompt(existing_risks, risk_number):
+    """Build prompt for generating additional risks in order of importance"""
+
+    # Determine importance level based on risk number
+    if risk_number <= 6:
+        importance_level = f"{risk_number}th most critical"
+    elif risk_number == 7:
+        importance_level = "7th most critical (first secondary priority)"
+    elif risk_number == 8:
+        importance_level = "8th most critical (second secondary priority)"
+    elif risk_number == 9:
+        importance_level = "9th most critical (third secondary priority)"
+    else:
+        importance_level = f"{risk_number}th most critical (lower priority but still relevant)"
+
+    return f"""Generate the {importance_level} risk (#{risk_number}) for this event, continuing the importance-based ranking.
+
+EXISTING RISKS ALREADY IDENTIFIED (in order of importance):
+{chr(10).join([f"#{i+1}: {risk['risk'][:80]}... (Category: {risk['category']}, Impact: {risk['impact']}, Likelihood: {risk['likelihood']})" for i, risk in enumerate(existing_risks)])}
+
+For risk #{risk_number}, identify the NEXT MOST IMPORTANT risk that:
+1. Continues the DESCENDING ORDER OF IMPORTANCE from the existing risks
+2. Is COMPLETELY DIFFERENT from all existing risks (avoid similar themes/categories)
+3. Represents what would ACTUALLY be the #{risk_number} most important concern for this specific event
+4. Is still RELEVANT and REALISTIC for this event type and circumstances
+5. Has appropriate impact/likelihood scores reflecting its importance level
+6. Uses a different category if possible to ensure comprehensive coverage
+
+IMPORTANCE RANKING CRITERIA (same as initial risks):
+- Potential for serious injury/death
+- Likelihood of occurrence for THIS event type
+- Scale of potential disruption
+- Legal/regulatory consequences
+- Financial impact
+- Reputational damage
+
+This should be the NEXT most important risk after the existing {len(existing_risks)} risks, not just any secondary risk.
 
 Return only valid JSON format."""
 

@@ -255,7 +255,11 @@
                             <div class="loader"></div>
                             <p class="ml-4 text-zinc-500">AI is analyzing risks...</p>
                         </div>
-                        <div id="acceptAllContainer" class="mt-4 flex justify-end hidden">
+                        <div id="acceptAllContainer" class="mt-4 flex justify-between items-center hidden">
+                            <div class="flex gap-3">
+                                <button id="generateMoreBtn" class="btn btn-secondary">+ Generate More Risks</button>
+                                <button id="addCustomRiskBtn" class="btn btn-secondary">+ Add Custom Risk</button>
+                            </div>
                             <button id="acceptAllBtn" class="btn btn-secondary">Accept All</button>
                         </div>
                     </div>
@@ -341,9 +345,75 @@
 
     </div>
 
+    <!-- Custom Risk Modal -->
+    <div id="customRiskModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-zinc-800">Add Custom Risk</h3>
+                <button id="closeCustomRiskModal" class="text-zinc-500 hover:text-zinc-700 text-2xl">&times;</button>
+            </div>
+
+            <form id="customRiskForm" class="space-y-4">
+                <div>
+                    <label for="customRiskDescription" class="block text-sm font-medium text-zinc-700 mb-1">Risk Description</label>
+                    <textarea id="customRiskDescription" rows="3" class="w-full px-3 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Describe the specific risk..." required></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="customRiskCategory" class="block text-sm font-medium text-zinc-700 mb-1">Category</label>
+                        <select id="customRiskCategory" class="w-full px-3 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select category...</option>
+                            <option value="Crowd Safety">Crowd Safety</option>
+                            <option value="Environmental">Environmental</option>
+                            <option value="Security">Security</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Operational">Operational</option>
+                            <option value="Logistics">Logistics</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="customRiskImpact" class="block text-sm font-medium text-zinc-700 mb-1">Impact (1-5)</label>
+                        <select id="customRiskImpact" class="w-full px-3 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select impact...</option>
+                            <option value="1">1 - Minimal</option>
+                            <option value="2">2 - Minor</option>
+                            <option value="3">3 - Moderate</option>
+                            <option value="4">4 - Major</option>
+                            <option value="5">5 - Catastrophic</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="customRiskLikelihood" class="block text-sm font-medium text-zinc-700 mb-1">Likelihood (1-5)</label>
+                        <select id="customRiskLikelihood" class="w-full px-3 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select likelihood...</option>
+                            <option value="1">1 - Rare</option>
+                            <option value="2">2 - Unlikely</option>
+                            <option value="3">3 - Possible</option>
+                            <option value="4">4 - Likely</option>
+                            <option value="5">5 - Almost Certain</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="customRiskMitigation" class="block text-sm font-medium text-zinc-700 mb-1">Mitigation Strategy</label>
+                    <textarea id="customRiskMitigation" rows="3" class="w-full px-3 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Describe how to mitigate this risk..." required></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" id="cancelCustomRisk" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Risk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script src="js/ai-service.js"></script>
     <script src="js/api-config.js"></script>
     <script src="js/main.js"></script>
 </body>
-</html> 
+</html>

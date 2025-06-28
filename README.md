@@ -94,6 +94,33 @@ Frontend (HTML/JS) → Flask Backend → OpenAI API
 - **Progressive Generation**: Shows spinning loader with "AI is generating overview paragraph..." then "AI is generating operational considerations..." in the actual summary area
 - **Visual Consistency**: All loading states use the same design pattern throughout the application
 
+### AI Risk Generation Improvements
+
+- **Importance-Based Ordering**: Risks are now generated in order of importance (most critical first)
+- **Event-Specific Analysis**: Each risk is highly specific to the actual event type, venue, and circumstances
+- **Conversation Context**: AI maintains conversation context to ensure diverse, non-repetitive risks
+- **Realistic Assessment**: Impact and likelihood scores reflect realistic assessment for the specific event
+- **Progressive Labels**: Loading shows "most critical", "second most critical", etc. to indicate importance ranking
+
+### New Features
+
+#### Generate More Risks
+- **Importance-Based Continuation**: Click "Generate More Risks" to add 3 more risks ranked as 7th, 8th, and 9th most critical
+- **Maintains Priority Order**: Additional risks continue the importance hierarchy from the initial 6 most critical risks
+- **Contextual Continuation**: Uses the same conversation context to ensure new risks are different from existing ones
+- **Comprehensive Coverage**: Additional risks cover secondary concerns while maintaining realistic importance ranking
+
+#### Add Custom Risk
+- **Manual Risk Entry**: Click "Add Custom Risk" to open a form for manually adding risks
+- **Complete Control**: Specify risk description, category, impact, likelihood, and mitigation strategy
+- **Professional Integration**: Custom risks integrate seamlessly with AI-generated ones
+
+#### Pre-Generated Justifications
+- **Instant Access**: Justifications are generated in the background as soon as risks are created
+- **No Waiting**: Click any justification icon (?) and see content immediately - no loading time
+- **Background Processing**: AI generates justifications for key fields while you review other content
+- **Smart Caching**: All justifications are stored and persist throughout your session
+
 ## Security Benefits
 
 1. **No API key exposure** - Keys never leave the server

@@ -165,6 +165,23 @@ class AIService {
     }
 
     /**
+     * Generate additional risks for an existing assessment
+     * @param {string} conversationId - Conversation ID
+     * @param {Array} existingRisks - Array of existing risks
+     * @param {number} numAdditional - Number of additional risks to generate
+     * @returns {Promise<Array>}
+     */
+    async generateAdditionalRisks(conversationId, existingRisks, numAdditional = 3) {
+        const requestData = {
+            conversation_id: conversationId,
+            existing_risks: existingRisks,
+            num_additional: numAdditional
+        };
+        const response = await this.makeRequest('/api/ai/generate-additional-risks', requestData);
+        return response.risks;
+    }
+
+    /**
      * Generate justification for a specific field
      * @param {string} fieldName - Name of the field
      * @param {string} fieldValue - Value of the field
