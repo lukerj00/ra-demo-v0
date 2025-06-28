@@ -72,6 +72,21 @@ Frontend (HTML/JS) → Flask Backend → OpenAI API
 - CORS is configured to allow frontend-backend communication
 - All API keys and sensitive data stay on the backend
 
+## New Features
+
+### Data Persistence & State Management
+
+- **Justification Caching**: Once a justification is generated for a field, it's cached and reused when the same field is clicked again
+- **Smart Cache Invalidation**: When you edit risk values, related cached justifications are automatically cleared
+- **State Tracking**: Application tracks current step, event data, and generation status
+- **Debug Tools**: Use `window.debugRiskAssessment()` in browser console to inspect current state
+
+### How It Works
+
+1. **First Time**: Click a justification icon → AI generates content → Content is cached
+2. **Subsequent Times**: Click the same field → Cached content is instantly displayed
+3. **After Editing**: Edit a risk value → Related cached justifications are cleared → Fresh AI content generated on next click
+
 ## Security Benefits
 
 1. **No API key exposure** - Keys never leave the server

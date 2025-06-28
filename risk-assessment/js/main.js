@@ -88,6 +88,35 @@ const { jsPDF } = window.jspdf;
             let currentProjectName = "";
             let aiRekonLogoBase64 = null; // To store the base64 logo for PDF
 
+            // --- Simple State Management ---
+            let applicationState = {
+                currentStep: 'setup', // 'setup', 'generating', 'review', 'complete'
+                eventData: {},
+                summaryGenerated: false,
+                risksGenerated: false,
+                summaryJustification: null, // Store contextual summary justification here
+                lastModified: null
+            };
+
+            // State management utilities
+            const updateApplicationState = (updates) => {
+                Object.assign(applicationState, updates);
+                applicationState.lastModified = new Date().toISOString();
+                console.log('🔄 Application state updated:', applicationState);
+            };
+
+            // Debug function to inspect current state
+            const debugState = () => {
+                console.log('📊 Current Application State:', {
+                    applicationState,
+                    riskDataCount: riskData.length,
+                    riskDataSample: riskData.length > 0 ? riskData[0] : null
+                });
+            };
+
+            // Make debug function available globally for testing
+            window.debugRiskAssessment = debugState;
+
             const typeOptions = {
                 'Music': ['Outdoor Festival', 'Indoor Concert', 'Nightclub Event', 'Arena Tour', 'Album Launch Party'],
                 'Community': ['Street Fair / Fete', 'Charity Fundraiser', 'Local Market', 'Public Rally / Protest', 'Cultural Festival'],
@@ -224,7 +253,16 @@ const { jsPDF } = window.jspdf;
 
             const resetScreen2 = () => {
                 riskData = [];
-                
+
+                // Reset application state
+                updateApplicationState({
+                    currentStep: 'setup',
+                    eventData: {},
+                    summaryGenerated: false,
+                    risksGenerated: false,
+                    summaryJustification: null
+                });
+
                 summaryContent.textContent = '';
                 summarySection.classList.add('hidden');
                 summaryActions.classList.add('hidden');
@@ -238,7 +276,7 @@ const { jsPDF } = window.jspdf;
                 riskTableBody.innerHTML = '';
                 riskTableSection.classList.add('hidden');
                 rekonContextSection.classList.add('hidden');
-                
+
                 rekonMetricsSection.classList.add('hidden');
 
                 progressBar.style.width = '0%';
@@ -293,10 +331,27 @@ const { jsPDF } = window.jspdf;
                         aiStatus.textContent = `Adding Risk ${i + 1} of ${aiRisks.length}`;
                         await sleep(500);
                         addRiskRow(risk);
-                        riskData.push({...risk});
+                        // Add justification fields to store generated justifications
+                        riskData.push({
+                            ...risk,
+                            justifications: {
+                                risk: null,
+                                category: null,
+                                impact: null,
+                                likelihood: null,
+                                mitigation: null,
+                                overall: null
+                            }
+                        });
                     }
 
                     tableLoader.classList.add('hidden');
+
+                    // Update state to indicate risks are generated
+                    updateApplicationState({
+                        risksGenerated: true,
+                        currentStep: 'review'
+                    });
 
                     progressBar.style.width = '90%';
                     aiStatus.textContent = "AI risk analysis complete. Please review and accept risks.";
@@ -374,6 +429,22 @@ const { jsPDF } = window.jspdf;
                 }
                 reportTitle.textContent = `Risk Assessment Report for: ${currentProjectName} on ${eventDateFormatted}`;
 
+                // Update application state with event data
+                const eventData = {
+                    eventTitle: eventTitleInput.value.trim(),
+                    eventDate: eventDateFormatted,
+                    location: locationInput.value.trim(),
+                    attendance: attendanceInput.value,
+                    eventType: eventTypeInput.value,
+                    venueType: venueTypeInput.value,
+                    description: descriptionInput.value.trim()
+                };
+
+                updateApplicationState({
+                    currentStep: 'generating',
+                    eventData: eventData
+                });
+
                 // Populate Event Card
                 populateEventCard();
 
@@ -425,6 +496,9 @@ const { jsPDF } = window.jspdf;
                     const paragraph2 = await aiService.generateOperationalParagraph(eventData);
                     summaryContent.innerHTML = `<p>${paragraph1}</p>\n<p>${paragraph2}</p>`;
 
+                    // Update state to indicate summary is generated
+                    updateApplicationState({ summaryGenerated: true });
+
                     // Hide loading indicator and show actions
                     summaryLoader.classList.add('hidden');
                     summaryActions.classList.remove('hidden');
@@ -467,6 +541,9 @@ const { jsPDF } = window.jspdf;
             });
 
             saveSummaryBtn.addEventListener('click', () => {
+                // Clear stored justification since summary was edited
+                applicationState.summaryJustification = null;
+
                 summaryContent.contentEditable = false;
                 summaryContent.classList.remove('table-cell-editing');
                 editSummaryBtn.classList.remove('hidden');
@@ -626,15 +703,50 @@ const { jsPDF } = window.jspdf;
                         cell.contentEditable = false;
                         cell.classList.remove('table-cell-editing');
                     });
-                    
+
                     if (riskItem) {
+                         // Store old values to check what changed
+                         const oldValues = {
+                             risk: riskItem.risk,
+                             category: riskItem.category,
+                             impact: riskItem.impact,
+                             likelihood: riskItem.likelihood,
+                             mitigation: riskItem.mitigation
+                         };
+
+                         // Update with new values
                          riskItem.risk = row.querySelector('[data-field="risk"]').textContent;
                          riskItem.category = row.querySelector('[data-field="category"]').textContent;
                          riskItem.impact = parseInt(row.querySelector('[data-field="impact"]').textContent, 10) || riskItem.impact;
                          riskItem.likelihood = parseInt(row.querySelector('[data-field="likelihood"]').textContent, 10) || riskItem.likelihood;
                          riskItem.mitigation = row.querySelector('[data-field="mitigation"]').textContent;
-                         
+
+                         // Clear stored justifications for changed fields
+                         const fieldMappings = {
+                             'risk': { old: oldValues.risk, new: riskItem.risk },
+                             'category': { old: oldValues.category, new: riskItem.category },
+                             'impact': { old: oldValues.impact, new: riskItem.impact },
+                             'likelihood': { old: oldValues.likelihood, new: riskItem.likelihood },
+                             'mitigation': { old: oldValues.mitigation, new: riskItem.mitigation }
+                         };
+
+                         // Clear justifications for fields that changed
+                         Object.entries(fieldMappings).forEach(([fieldKey, values]) => {
+                             if (values.old !== values.new && riskItem.justifications) {
+                                 riskItem.justifications[fieldKey] = null;
+                                 console.log(`🗑️ Cleared justification for changed field: ${fieldKey}`);
+                             }
+                         });
+
+                         // Also clear Overall Score justification since it's calculated
+                         const oldOverall = oldValues.impact * oldValues.likelihood;
                          const newOverall = riskItem.impact * riskItem.likelihood;
+                         if (oldOverall !== newOverall && riskItem.justifications) {
+                             riskItem.justifications.overall = null;
+                             console.log(`🗑️ Cleared justification for changed Overall Score`);
+                         }
+
+                         // Update the overall score display
                          const overallCell = row.querySelector('[data-field="overall"]');
                          overallCell.textContent = newOverall;
                          overallCell.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(newOverall)}`;
@@ -834,6 +946,26 @@ const { jsPDF } = window.jspdf;
 
             // Generate AI justification for risk fields
             const generateRiskJustification = async (fieldName, fieldValue, riskData) => {
+                // Map field names to justification keys
+                const fieldMap = {
+                    'Risk Description': 'risk',
+                    'Category': 'category',
+                    'Impact': 'impact',
+                    'Likelihood': 'likelihood',
+                    'Mitigations': 'mitigation',
+                    'Overall Score': 'overall'
+                };
+
+                const justificationKey = fieldMap[fieldName];
+
+                // Check if we already have this justification stored
+                if (riskData.justifications && riskData.justifications[justificationKey]) {
+                    const stored = riskData.justifications[justificationKey];
+                    console.log(`📋 Retrieved stored justification for: ${fieldName} = "${fieldValue}"`);
+                    openJustificationPane(fieldName, fieldValue, stored.reasoning, stored.sources);
+                    return;
+                }
+
                 // Open panel immediately with loading state
                 openJustificationPane(
                     fieldName,
@@ -862,6 +994,16 @@ const { jsPDF } = window.jspdf;
                         context
                     );
 
+                    // Store the justification in the risk data
+                    if (!riskData.justifications) {
+                        riskData.justifications = {};
+                    }
+                    riskData.justifications[justificationKey] = {
+                        reasoning: justification.reasoning,
+                        sources: justification.sources
+                    };
+                    console.log(`💾 Stored justification for: ${fieldName} = "${fieldValue}"`);
+
                     // Update panel with AI-generated content
                     updateJustificationContent(justification.reasoning, justification.sources);
 
@@ -870,6 +1012,16 @@ const { jsPDF } = window.jspdf;
                     // Update with fallback content
                     const fallbackReasoning = `This assessment was determined through AI analysis considering the event type, scale, venue characteristics, and industry best practices.`;
                     const fallbackSources = ['AI Risk Analysis', 'Industry Standards'];
+
+                    // Store the fallback content too
+                    if (!riskData.justifications) {
+                        riskData.justifications = {};
+                    }
+                    riskData.justifications[justificationKey] = {
+                        reasoning: fallbackReasoning,
+                        sources: fallbackSources
+                    };
+
                     updateJustificationContent(fallbackReasoning, fallbackSources);
                 }
             };
@@ -930,6 +1082,15 @@ const { jsPDF } = window.jspdf;
             }
 
             summaryJustificationIcon.addEventListener('click', async () => {
+                // Check if we already have this justification stored
+                if (applicationState.summaryJustification) {
+                    console.log(`📋 Retrieved stored justification for: Contextual Summary`);
+                    openJustificationPane('Contextual Summary', summaryContent.innerHTML,
+                        applicationState.summaryJustification.reasoning,
+                        applicationState.summaryJustification.sources);
+                    return;
+                }
+
                 // Open panel immediately with loading state
                 openJustificationPane(
                     'Contextual Summary',
@@ -955,6 +1116,13 @@ const { jsPDF } = window.jspdf;
                         eventData
                     );
 
+                    // Store the justification in application state
+                    applicationState.summaryJustification = {
+                        reasoning: justification.reasoning,
+                        sources: justification.sources
+                    };
+                    console.log(`💾 Stored justification for: Contextual Summary`);
+
                     // Update panel with AI-generated content
                     updateJustificationContent(justification.reasoning, justification.sources);
 
@@ -963,6 +1131,13 @@ const { jsPDF } = window.jspdf;
                     // Update with fallback content
                     const fallbackReasoning = 'The summary was generated using AI analysis based on the event details provided, considering event type, scale, location, and industry best practices.';
                     const fallbackSources = ['AI Analysis', 'Event Details', 'Industry Best Practices'];
+
+                    // Store the fallback content too
+                    applicationState.summaryJustification = {
+                        reasoning: fallbackReasoning,
+                        sources: fallbackSources
+                    };
+
                     updateJustificationContent(fallbackReasoning, fallbackSources);
                 }
             });

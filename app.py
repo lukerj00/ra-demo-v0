@@ -31,7 +31,12 @@ if not openai_api_key:
     logger.error("OPENAI_API_KEY not found in environment variables")
     raise ValueError("OPENAI_API_KEY must be set in .env file")
 
-client = OpenAI(api_key=openai_api_key)
+try:
+    client = OpenAI(api_key=openai_api_key)
+    logger.info("OpenAI client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize OpenAI client: {e}")
+    raise
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -389,5 +394,5 @@ def parse_justification_response(response):
     }
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
