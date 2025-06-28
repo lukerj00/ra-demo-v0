@@ -466,10 +466,15 @@ const { jsPDF } = window.jspdf;
                         description: descriptionInput.value.trim()
                     };
 
-                    // Show summary section with loading message in content area
+                    // Show summary section with loading indicator in content area
                     summarySection.classList.remove('hidden');
                     summarySection.classList.add('fade-in');
-                    summaryContent.innerHTML = '<p class="text-gray-500 italic">🤖 AI is generating overview paragraph...</p>';
+                    summaryContent.innerHTML = `
+                        <div class="flex justify-center items-center py-4">
+                            <div class="loader"></div>
+                            <p class="ml-4 text-zinc-500">AI is generating overview paragraph...</p>
+                        </div>
+                    `;
 
                     // Update status for first paragraph
                     aiStatus.textContent = "AI is generating overview paragraph...";
@@ -482,9 +487,15 @@ const { jsPDF } = window.jspdf;
                     // Brief pause to let user see first paragraph
                     await sleep(800);
 
-                    // Update status and content for second paragraph
+                    // Update status and content for second paragraph with loading indicator
                     aiStatus.textContent = "AI is generating operational considerations...";
-                    summaryContent.innerHTML = `<p>${paragraph1}</p>\n<p class="text-gray-500 italic">🤖 AI is generating operational considerations...</p>`;
+                    summaryContent.innerHTML = `
+                        <p>${paragraph1}</p>
+                        <div class="flex justify-center items-center py-4">
+                            <div class="loader"></div>
+                            <p class="ml-4 text-zinc-500">AI is generating operational considerations...</p>
+                        </div>
+                    `;
                     progressBar.style.width = '25%';
 
                     // Generate and add second paragraph
@@ -502,8 +513,13 @@ const { jsPDF } = window.jspdf;
                     aiStatus.textContent = "Contextual summary generated. Awaiting review...";
                 } catch (error) {
                     console.error('Error generating AI summary:', error);
-                    // Show error message in content area
-                    summaryContent.innerHTML = '<p class="text-red-500">❌ Error generating summary. Please check your API key and try again.</p>';
+                    // Show error message in content area with consistent styling
+                    summaryContent.innerHTML = `
+                        <div class="flex justify-center items-center py-4">
+                            <div class="text-red-500 text-2xl">❌</div>
+                            <p class="ml-4 text-red-500">Error generating summary. Please check your API key and try again.</p>
+                        </div>
+                    `;
                     aiStatus.textContent = "Error generating summary. Please check your API key and try again.";
                     alert('Failed to generate AI summary: ' + error.message);
                     return;

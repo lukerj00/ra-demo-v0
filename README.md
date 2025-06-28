@@ -89,9 +89,10 @@ Frontend (HTML/JS) → Flask Backend → OpenAI API
 
 ### UI Improvements
 
-- **Better Loading States**: Loading messages now appear directly in the content area where the final text will be displayed
-- **Progressive Generation**: Shows "🤖 AI is generating overview paragraph..." then "🤖 AI is generating operational considerations..." in the actual summary area
-- **Contextual Placement**: No separate loading spinners - everything appears where it belongs
+- **Consistent Loading States**: Loading messages now use the same spinning circle icon as the risk table
+- **Contextual Placement**: Loading indicators appear directly in the content area where the final text will be displayed
+- **Progressive Generation**: Shows spinning loader with "AI is generating overview paragraph..." then "AI is generating operational considerations..." in the actual summary area
+- **Visual Consistency**: All loading states use the same design pattern throughout the application
 
 ## Security Benefits
 
