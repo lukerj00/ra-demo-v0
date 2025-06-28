@@ -4,57 +4,27 @@ Handles OpenAI API requests securely on the server side
 """
 
 import os
-import json
-import logging
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from dotenv import load_dotenv
-from openai import OpenAI
+from flask import Flask
+from config import configure_app
+from routes.main_routes import main_bp
+from routes.ai_routes import ai_bp
 
-# Load environment variables
-load_dotenv()
+def create_app():
+    """Application factory pattern"""
+    app = Flask(__name__, static_folder='risk-assessment', static_url_path='')
 
-# Configure logging
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+    # Configure the app
+    configure_app(app)
 
-# Reduce verbosity of external libraries
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
-logging.getLogger('openai').setLevel(logging.WARNING)
+    # Register blueprints
+    app.register_blueprint(main_bp)
+    app.register_blueprint(ai_bp, url_prefix='/api/ai')
 
-# Initialize Flask app with static file serving
-app = Flask(__name__, static_folder='risk-assessment', static_url_path='')
+    return app
 
-# Configure CORS to allow requests from the frontend
-# Allow all origins in development - restrict in production
-CORS(app, origins=["*"], supports_credentials=True)
+app = create_app()
 
-# Initialize OpenAI client
-openai_api_key = os.getenv('OPENAI_API_KEY')
-if not openai_api_key:
-    logger.error("OPENAI_API_KEY not found in environment variables")
-    raise ValueError("OPENAI_API_KEY must be set in .env file")
 
-try:
-    client = OpenAI(api_key=openai_api_key)
-    logger.info("OpenAI client initialized successfully")
-except Exception as e:
-    logger.error(f"Failed to initialize OpenAI client: {e}")
-    raise
-
-# Store conversation contexts for progressive risk generation
-risk_conversations = {}
-
-@app.route('/')
-def index():
-    """Serve the main application"""
-    return app.send_static_file('index.html')
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({"status": "healthy", "message": "aiRekon Risk Assessment API is running"})
 
 @app.route('/api/ai/generate-overview', methods=['POST'])
 def generate_overview():
