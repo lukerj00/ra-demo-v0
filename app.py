@@ -38,6 +38,9 @@ except Exception as e:
     logger.error(f"Failed to initialize OpenAI client: {e}")
     raise
 
+# Store conversation contexts for progressive risk generation
+risk_conversations = {}
+
 @app.route('/')
 def index():
     """Serve the main application"""
@@ -166,9 +169,101 @@ def generate_risks():
         logger.error(f"Error generating risks: {str(e)}")
         return jsonify({"error": f"Failed to generate risks: {str(e)}"}), 500
 
+@app.route('/api/ai/start-risk-conversation', methods=['POST'])
+def start_risk_conversation():
+    """Start a new risk assessment conversation"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Generate a unique conversation ID
+        import uuid
+        conversation_id = str(uuid.uuid4())
+
+        # Initialize conversation with system prompt and event context
+        system_prompt = build_risk_conversation_system_prompt()
+        event_context = build_event_context_message(data)
+
+        risk_conversations[conversation_id] = {
+            'messages': [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": event_context}
+            ],
+            'generated_risks': [],
+            'event_data': data
+        }
+
+        logger.info(f"Started risk conversation {conversation_id}")
+        return jsonify({"conversation_id": conversation_id})
+
+    except Exception as e:
+        logger.error(f"Error starting risk conversation: {str(e)}")
+        return jsonify({"error": f"Failed to start risk conversation: {str(e)}"}), 500
+
+@app.route('/api/ai/generate-next-risk', methods=['POST'])
+def generate_next_risk():
+    """Generate the next risk in an ongoing conversation"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        conversation_id = data.get('conversation_id')
+        risk_number = data.get('risk_number', 1)
+
+        if not conversation_id or conversation_id not in risk_conversations:
+            return jsonify({"error": "Invalid or expired conversation ID"}), 400
+
+        conversation = risk_conversations[conversation_id]
+
+        # Build prompt for next risk that avoids previous ones
+        next_risk_prompt = build_next_risk_prompt(conversation['generated_risks'], risk_number)
+
+        # Add the request to conversation
+        conversation['messages'].append({
+            "role": "user",
+            "content": next_risk_prompt
+        })
+
+        # Make request to OpenAI with full conversation context
+        response = client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=conversation['messages'],
+            temperature=0.8,  # Higher temperature for more variety
+            max_tokens=400
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Add AI response to conversation
+        conversation['messages'].append({
+            "role": "assistant",
+            "content": content
+        })
+
+        # Parse JSON response
+        try:
+            risk = json.loads(content)
+            validated_risk = validate_and_format_single_risk(risk, risk_number)
+
+            # Store the generated risk in conversation context
+            conversation['generated_risks'].append(validated_risk)
+
+            logger.info(f"Generated risk {risk_number} in conversation {conversation_id}: {validated_risk['risk'][:50]}...")
+            return jsonify({"risk": validated_risk})
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse risk JSON: {e}")
+            return jsonify({"error": "Invalid risk format received from AI"}), 500
+
+    except Exception as e:
+        logger.error(f"Error generating next risk: {str(e)}")
+        return jsonify({"error": f"Failed to generate next risk: {str(e)}"}), 500
+
 @app.route('/api/ai/generate-single-risk', methods=['POST'])
 def generate_single_risk():
-    """Generate a single risk for progressive loading"""
+    """Generate a single risk for progressive loading (legacy endpoint)"""
     try:
         data = request.get_json()
         if not data:
@@ -321,8 +416,70 @@ Generate 6-8 specific risks relevant to this event. Each risk must have:
 
 Return only the JSON array, no additional text or formatting."""
 
+def build_risk_conversation_system_prompt():
+    """Build system prompt for risk conversation"""
+    return """You are an expert risk assessment consultant conducting a comprehensive risk analysis. Your task is to generate diverse, unique risks for events, ensuring each risk covers different aspects and categories.
+
+IMPORTANT GUIDELINES:
+1. Generate DIVERSE risks - avoid repetition or similar themes
+2. Cover different categories: Crowd Safety, Environmental, Security, Medical, Operational, Logistics
+3. Vary impact and likelihood levels to create a realistic risk profile
+4. Each risk should address different aspects of the event
+5. Provide specific, actionable mitigation strategies
+6. Return ONLY valid JSON format: {"id": number, "risk": "description", "category": "category", "impact": number, "likelihood": number, "mitigation": "strategy"}
+
+You will be asked to generate risks one by one. Each request will specify which risk number you're generating. Make sure each subsequent risk is COMPLETELY DIFFERENT from previous ones and covers new risk areas."""
+
+def build_event_context_message(event_data):
+    """Build initial event context message"""
+    return f"""I need a comprehensive risk assessment for the following event:
+
+Event Details:
+- Title: {event_data.get('eventTitle', 'N/A')}
+- Date: {event_data.get('eventDate', 'N/A')}
+- Location: {event_data.get('location', 'N/A')}
+- Attendance: {event_data.get('attendance', 'N/A')} people
+- Event Type: {event_data.get('eventType', 'N/A')}
+- Venue Type: {event_data.get('venueType', 'N/A')}
+- Description: {event_data.get('description', 'Not provided')}
+
+I will ask you to generate 6-8 different risks, one at a time. Each risk must be unique and cover different aspects of event management and safety. Please ensure variety in categories, impact levels, and likelihood scores."""
+
+def build_next_risk_prompt(previous_risks, risk_number):
+    """Build prompt for next risk that avoids previous ones"""
+    if not previous_risks:
+        return f"""Generate risk #{risk_number}. Focus on the HIGHEST PRIORITY risk for this event type. This should be a critical safety or operational concern.
+
+Return only valid JSON format."""
+
+    # Build context of what's already been covered
+    covered_categories = [risk['category'] for risk in previous_risks]
+    covered_themes = [risk['risk'][:50] + "..." for risk in previous_risks]
+
+    priority_guidance = {
+        1: "HIGHEST PRIORITY - Critical safety or security risk",
+        2: "HIGH PRIORITY - Major operational or crowd safety risk",
+        3: "MEDIUM-HIGH PRIORITY - Important logistical or environmental risk",
+        4: "MEDIUM PRIORITY - Significant but manageable risk",
+        5: "MEDIUM-LOW PRIORITY - Important secondary risk",
+        6: "STANDARD PRIORITY - Additional risk consideration"
+    }
+
+    return f"""Generate risk #{risk_number}. {priority_guidance.get(risk_number, 'STANDARD PRIORITY - Additional risk consideration')}
+
+ALREADY COVERED CATEGORIES: {', '.join(set(covered_categories))}
+ALREADY COVERED THEMES: {'; '.join(covered_themes)}
+
+Generate a COMPLETELY DIFFERENT risk that:
+1. Uses a DIFFERENT category if possible (prefer unused: {', '.join(['Crowd Safety', 'Environmental', 'Security', 'Medical', 'Operational', 'Logistics'])})
+2. Addresses a DIFFERENT aspect of the event
+3. Has DIFFERENT impact/likelihood levels than previous risks
+4. Covers NEW concerns not mentioned before
+
+Return only valid JSON format."""
+
 def build_single_risk_prompt(event_data, risk_number, total_risks):
-    """Build prompt for single risk generation"""
+    """Build prompt for single risk generation (legacy)"""
     return f"""Generate risk #{risk_number} of {total_risks} for the following event. Return ONLY valid JSON object format.
 
 Event Details:

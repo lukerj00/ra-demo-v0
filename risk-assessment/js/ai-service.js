@@ -123,7 +123,32 @@ class AIService {
     }
 
     /**
-     * Generate a single risk for progressive loading
+     * Start a new risk assessment conversation
+     * @param {Object} eventData - Event information
+     * @returns {Promise<string>} - Conversation ID
+     */
+    async startRiskConversation(eventData) {
+        const response = await this.makeRequest('/api/ai/start-risk-conversation', eventData);
+        return response.conversation_id;
+    }
+
+    /**
+     * Generate the next risk in an ongoing conversation
+     * @param {string} conversationId - Conversation ID
+     * @param {number} riskNumber - Which risk number to generate (1-based)
+     * @returns {Promise<Object>}
+     */
+    async generateNextRisk(conversationId, riskNumber) {
+        const requestData = {
+            conversation_id: conversationId,
+            risk_number: riskNumber
+        };
+        const response = await this.makeRequest('/api/ai/generate-next-risk', requestData);
+        return response.risk;
+    }
+
+    /**
+     * Generate a single risk for progressive loading (legacy method)
      * @param {Object} eventData - Event information
      * @param {number} riskNumber - Which risk number to generate (1-based)
      * @param {number} totalRisks - Total number of risks to generate

@@ -315,48 +315,80 @@ const { jsPDF } = window.jspdf;
                         description: descriptionInput.value.trim()
                     };
 
-                    aiStatus.textContent = "AI is generating risk assessment...";
+                    aiStatus.textContent = "AI is starting risk assessment conversation...";
 
-                    // Generate risks progressively - one by one
-                    const totalRisks = 6;
+                    try {
+                        // Start a conversation with the AI for diverse risk generation
+                        const conversationId = await aiService.startRiskConversation(eventData);
+                        console.log(`🤖 Started risk conversation: ${conversationId}`);
 
-                    for (let i = 1; i <= totalRisks; i++) {
-                        const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
-                        progressBar.style.width = `${progress}%`;
-                        aiStatus.textContent = `AI is generating risk ${i} of ${totalRisks}...`;
+                        // Generate risks progressively using conversation context
+                        const totalRisks = 6;
 
-                        // Update table loader text to show current risk being generated
-                        const tableLoaderText = document.querySelector('#tableLoader p');
-                        if (tableLoaderText) {
-                            tableLoaderText.textContent = `AI is generating risk ${i} of ${totalRisks}...`;
+                        for (let i = 1; i <= totalRisks; i++) {
+                            const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
+                            progressBar.style.width = `${progress}%`;
+                            aiStatus.textContent = `AI is generating diverse risk ${i} of ${totalRisks}...`;
+
+                            // Update table loader text to show current risk being generated
+                            const tableLoaderText = document.querySelector('#tableLoader p');
+                            if (tableLoaderText) {
+                                tableLoaderText.textContent = `AI is generating diverse risk ${i} of ${totalRisks}...`;
+                            }
+
+                            try {
+                                // Generate next risk in conversation for diversity
+                                const risk = await aiService.generateNextRisk(conversationId, i);
+
+                                // Add the risk to the table immediately
+                                addRiskRow(risk);
+
+                                // Add to risk data with justification fields
+                                riskData.push({
+                                    ...risk,
+                                    justifications: {
+                                        risk: null,
+                                        category: null,
+                                        impact: null,
+                                        likelihood: null,
+                                        mitigation: null,
+                                        overall: null
+                                    }
+                                });
+
+                                // Brief pause to let user see the new row
+                                await sleep(400);
+
+                            } catch (error) {
+                                console.error(`Error generating risk ${i}:`, error);
+                                // Continue with next risk even if one fails
+                            }
                         }
+                    } catch (error) {
+                        console.error('Error starting risk conversation:', error);
+                        // Fallback to legacy method if conversation fails
+                        aiStatus.textContent = "Falling back to standard risk generation...";
 
-                        try {
-                            // Generate single risk
-                            const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
-
-                            // Add the risk to the table immediately
-                            addRiskRow(risk);
-
-                            // Add to risk data with justification fields
-                            riskData.push({
-                                ...risk,
-                                justifications: {
-                                    risk: null,
-                                    category: null,
-                                    impact: null,
-                                    likelihood: null,
-                                    mitigation: null,
-                                    overall: null
-                                }
-                            });
-
-                            // Brief pause to let user see the new row
-                            await sleep(300);
-
-                        } catch (error) {
-                            console.error(`Error generating risk ${i}:`, error);
-                            // Continue with next risk even if one fails
+                        const totalRisks = 6;
+                        for (let i = 1; i <= totalRisks; i++) {
+                            try {
+                                const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
+                                addRiskRow(risk);
+                                riskData.push({
+                                    ...risk,
+                                    justifications: {
+                                        risk: null,
+                                        category: null,
+                                        impact: null,
+                                        likelihood: null,
+                                        mitigation: null,
+                                        overall: null
+                                    }
+                                });
+                                await sleep(400);
+                            } catch (riskError) {
+                                console.error(`Error generating fallback risk ${i}:`, riskError);
+                            }
                         }
                     }
 
