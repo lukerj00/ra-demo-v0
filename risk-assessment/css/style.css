@@ -183,3 +183,26 @@ body {
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        /* Contextual summary paragraph spacing */
+        #summaryContent p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            animation: fadeInParagraph 0.5s ease-in;
+        }
+
+        #summaryContent p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Animation for new paragraphs */
+        @keyframes fadeInParagraph {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }

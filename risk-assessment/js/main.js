@@ -10,7 +10,6 @@ const { jsPDF } = window.jspdf;
             const locationInput = document.getElementById('location');
             const attendanceInput = document.getElementById('attendance');
             const eventTypeInput = document.getElementById('eventType');
-            const venueTypeContainer = document.getElementById('venueType-container');
             const venueTypeInput = document.getElementById('venueType');
             const riskLevelInput = document.getElementById('riskLevel');
             const descriptionInput = document.getElementById('description');
@@ -34,6 +33,8 @@ const { jsPDF } = window.jspdf;
             const cardDescription = document.getElementById('cardDescription');
             
             const reportContainer = document.getElementById('reportContainer');
+            const summaryLoader = document.getElementById('summaryLoader');
+            const summaryLoaderText = document.getElementById('summaryLoaderText');
             const summarySection = document.getElementById('summarySection');
             const summaryContentWrapper = document.getElementById('summaryContentWrapper');
             const summaryContent = document.getElementById('summaryContent');
@@ -159,9 +160,8 @@ const { jsPDF } = window.jspdf;
                     eventTypeInput.value
                 ];
 
-                // Only require venue type if it's visible (i.e., event type is selected)
-                const isVenueTypeVisible = !venueTypeContainer.classList.contains('hidden');
-                if (isVenueTypeVisible) {
+                // Only require venue type if event type is selected and venue options are available
+                if (eventTypeInput.value && venueTypeInput.options.length > 1) {
                     requiredFields.push(venueTypeInput.value);
                 }
 
@@ -182,8 +182,6 @@ const { jsPDF } = window.jspdf;
                 venueTypeInput.innerHTML = '';
 
                 if (selectedEventType && typeOptions[selectedEventType]) {
-                    venueTypeContainer.classList.remove('hidden');
-
                     const defaultOption = document.createElement('option');
                     defaultOption.textContent = 'Select Venue Type';
                     defaultOption.value = '';
@@ -196,7 +194,10 @@ const { jsPDF } = window.jspdf;
                         venueTypeInput.appendChild(option);
                     });
                 } else {
-                    venueTypeContainer.classList.add('hidden');
+                    const defaultOption = document.createElement('option');
+                    defaultOption.textContent = 'Select Event Type first';
+                    defaultOption.value = '';
+                    venueTypeInput.appendChild(defaultOption);
                 }
 
                 // Re-validate form after venue type options change
@@ -260,32 +261,57 @@ const { jsPDF } = window.jspdf;
                 riskTableSection.classList.remove('hidden');
                 riskTableSection.classList.add('fade-in');
                 tableLoader.classList.remove('hidden');
-                aiStatus.textContent = `Analyzing risks...`;
-                
-                let currentProgress = parseFloat(progressBar.style.width) || 20;
-                const totalRisks = MOCK_RISKS.length;
-                const progressForRisks = 70;
-                const progressIncrement = totalRisks > 0 ? (progressForRisks / totalRisks) : progressForRisks;
+                aiStatus.textContent = `AI is analyzing risks...`;
 
-                for (let i = 0; i < totalRisks; i++) {
-                    const risk = MOCK_RISKS[i];
-                    currentProgress += progressIncrement;
-                    progressBar.style.width = `${Math.min(currentProgress, 100)}%`;
-                    aiStatus.textContent = `Generating Risk Item ${i + 1} of ${totalRisks}`;
-                    await sleep(800);
-                    addRiskRow(risk);
-                    riskData.push({...risk});
-                }
-                
-                tableLoader.classList.add('hidden');
-                
-                progressBar.style.width = '90%';
-                aiStatus.textContent = "Analysis complete. Please review and accept risks.";
-                exportBtn.disabled = true;
+                try {
+                    progressBar.style.width = '40%';
 
-                if (riskData.length > 0) {
-                    acceptAllContainer.classList.remove('hidden');
-                    acceptAllContainer.classList.add('fade-in');
+                    // Prepare event data for AI risk generation
+                    const eventData = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        location: locationInput.value.trim(),
+                        attendance: attendanceInput.value,
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        description: descriptionInput.value.trim()
+                    };
+
+                    aiStatus.textContent = "AI is generating risk assessment...";
+
+                    // Generate AI-powered risk assessment
+                    const aiRisks = await aiService.generateRiskAssessment(eventData);
+
+                    progressBar.style.width = '60%';
+                    aiStatus.textContent = "Processing generated risks...";
+
+                    // Add each risk to the table with animation
+                    for (let i = 0; i < aiRisks.length; i++) {
+                        const risk = aiRisks[i];
+                        const progress = 60 + (i / aiRisks.length) * 30; // 60% to 90%
+                        progressBar.style.width = `${progress}%`;
+                        aiStatus.textContent = `Adding Risk ${i + 1} of ${aiRisks.length}`;
+                        await sleep(500);
+                        addRiskRow(risk);
+                        riskData.push({...risk});
+                    }
+
+                    tableLoader.classList.add('hidden');
+
+                    progressBar.style.width = '90%';
+                    aiStatus.textContent = "AI risk analysis complete. Please review and accept risks.";
+                    exportBtn.disabled = true;
+
+                    if (riskData.length > 0) {
+                        acceptAllContainer.classList.remove('hidden');
+                        acceptAllContainer.classList.add('fade-in');
+                    }
+
+                } catch (error) {
+                    console.error('Error generating AI risks:', error);
+                    tableLoader.classList.add('hidden');
+                    aiStatus.textContent = "Error generating risks. Please try again.";
+                    alert('Failed to generate AI risk assessment: ' + error.message);
                 }
             };
 
@@ -354,42 +380,68 @@ const { jsPDF } = window.jspdf;
                 screen2.classList.remove('hidden');
                 resetScreen2();
 
-                aiStatus.textContent = "Generating Initial Summary...";
-                progressBar.style.width = '10%';
-                await sleep(1000);
-                
-                const eventDateValue = eventDateInput.value ? new Date(eventDateInput.value).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'an unspecified date';
-                const eventTypeValue = eventTypeInput.value || 'general';
-                const descriptionValue = descriptionInput.value.trim();
-                const attendanceNumValue = attendanceInput.value;
+                try {
+                    aiStatus.textContent = "AI is generating contextual summary...";
+                    progressBar.style.width = '10%';
 
-                let attendeesString = "";
-                if (attendanceNumValue && parseInt(attendanceNumValue) > 0) {
-                    attendeesString = `It is anticipated to involve approximately ${attendanceNumValue} attendees. `;
-                } else {
-                    attendeesString = "The scale of attendance is not specified. ";
+                    // Show loading indicator
+                    summaryLoader.classList.remove('hidden');
+                    summaryLoader.classList.add('fade-in');
+
+                    // Prepare event data for AI
+                    const eventData = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        location: locationInput.value.trim(),
+                        attendance: attendanceInput.value,
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        description: descriptionInput.value.trim()
+                    };
+
+                    // Show summary section early (but empty)
+                    summarySection.classList.remove('hidden');
+                    summarySection.classList.add('fade-in');
+                    summaryContent.innerHTML = '';
+
+                    // Update status for first paragraph
+                    aiStatus.textContent = "AI is generating overview paragraph...";
+                    summaryLoaderText.textContent = "AI is generating overview paragraph...";
+                    progressBar.style.width = '15%';
+
+                    // Generate and display first paragraph
+                    const paragraph1 = await aiService.generateOverviewParagraph(eventData);
+                    summaryContent.innerHTML = `<p>${paragraph1}</p>`;
+
+                    // Brief pause to let user see first paragraph
+                    await sleep(800);
+
+                    // Update status for second paragraph
+                    aiStatus.textContent = "AI is generating operational considerations...";
+                    summaryLoaderText.textContent = "AI is generating operational considerations...";
+                    progressBar.style.width = '25%';
+
+                    // Generate and add second paragraph
+                    const paragraph2 = await aiService.generateOperationalParagraph(eventData);
+                    summaryContent.innerHTML = `<p>${paragraph1}</p>\n<p>${paragraph2}</p>`;
+
+                    // Hide loading indicator and show actions
+                    summaryLoader.classList.add('hidden');
+                    summaryActions.classList.remove('hidden');
+                    displayRekonContext();
+                    progressBar.style.width = '30%';
+
+                    aiStatus.textContent = "Contextual summary generated. Awaiting review...";
+                } catch (error) {
+                    console.error('Error generating AI summary:', error);
+                    // Hide loading indicator on error
+                    summaryLoader.classList.add('hidden');
+                    aiStatus.textContent = "Error generating summary. Please check your API key and try again.";
+                    alert('Failed to generate AI summary: ' + error.message);
+                    return;
                 }
+                
 
-                const projectScopeString = descriptionValue ? descriptionValue : "achieving its stated goals as outlined in the event documentation";
-                const projectNatureString = descriptionValue ? `the specifics of '${descriptionValue.substring(0, 50)}${descriptionValue.length > 50 ? '...' : ''}' and the context of the ${eventTypeValue} event` : `its general operational requirements and the context of the ${eventTypeValue} event`;
-                const projectTypeString = `${eventTypeValue} event`;
-
-                let dynamicSummary = MOCK_SUMMARY_TEMPLATE
-                    .replace(/{projectName}/g, currentProjectName)
-                    .replace(/{projectType}/g, projectTypeString)
-                    .replace(/{eventDate}/g, eventDateValue)
-                    .replace(/{attendeesInfo}/g, attendeesString)
-                    .replace(/{projectScopeInfo}/g, projectScopeString)
-                    .replace(/{projectNature}/g, projectNatureString);
-
-                summarySection.classList.remove('hidden');
-                summarySection.classList.add('fade-in');
-                summaryContent.innerHTML = dynamicSummary;
-                summaryActions.classList.remove('hidden');
-                displayRekonContext();
-                progressBar.style.width = '20%';
-
-                aiStatus.textContent = "Awaiting summary review...";
             };
 
             generateBtn.addEventListener('click', startGeneration);
@@ -516,29 +568,27 @@ const { jsPDF } = window.jspdf;
                     if (currentRisk) {
                         if (fieldName === 'Overall Score') {
                             const overall = (currentRisk.impact * currentRisk.likelihood);
-                            fieldValue = overall.toString(); // Ensure fieldValue is accurate for display
+                            fieldValue = overall.toString();
                             reasoning = `The Overall Score (${overall}) is calculated by multiplying Impact (${currentRisk.impact}) by Likelihood (${currentRisk.likelihood}).`;
                             sources = ['Risk Scoring Matrix', 'Internal Calculation Logic'];
+                            openJustificationPane(fieldName, fieldValue, reasoning, sources);
                         } else {
-                            // For other fields, get fieldValue from currentRisk if not already found or to ensure accuracy
+                            // For other fields, get fieldValue from currentRisk
                             if (fieldName === 'Risk Description') fieldValue = currentRisk.risk;
                             else if (fieldName === 'Category') fieldValue = currentRisk.category;
                             else if (fieldName === 'Impact') fieldValue = currentRisk.impact.toString();
                             else if (fieldName === 'Likelihood') fieldValue = currentRisk.likelihood.toString();
                             else if (fieldName === 'Mitigations') fieldValue = currentRisk.mitigation;
-                            // else fieldValue remains what was grabbed from contentWrapper or default 'N/A'
 
-                            // Set detailed placeholder reasoning and sources for these other fields
-                            reasoning = `The value for "${fieldName}" (risk ID: ${riskId}) was determined based on an algorithmic assessment of the input documents and established risk ontologies for this sector. Specific keywords and contextual phrases related to potential threats and vulnerabilities were identified and scored. For numeric values, this involved a quantitative model considering frequency and potential severity. For textual descriptions, generative models summarized identified risk factors and proposed standard mitigation techniques.`;
-                            sources = ['Uploaded Document Example.pdf', 'Risk Analysis Model v3.1 Output', 'General Industry Best Practices'];
+                            // Generate AI justification for this field
+                            generateRiskJustification(fieldName, fieldValue, currentRisk);
                         }
                     } else {
-                        // Fallback if currentRisk is not found (e.g. if data is somehow corrupt or ID is wrong)
-                        reasoning = `Justification for "${fieldName}" (risk ID: ${riskId}) could not be fully determined as the specific risk data was not found. This value is based on general UI display.`;
+                        // Fallback if currentRisk is not found
+                        reasoning = `Justification for "${fieldName}" (risk ID: ${riskId}) could not be fully determined as the specific risk data was not found.`;
                         sources = ['UI Display Data'];
+                        openJustificationPane(fieldName, fieldValue, reasoning, sources);
                     }
-
-                    openJustificationPane(fieldName, fieldValue, reasoning, sources);
                     return; 
                 }
 
@@ -782,6 +832,60 @@ const { jsPDF } = window.jspdf;
                 exportBtn.disabled = false;
             };
 
+            // Generate AI justification for risk fields
+            const generateRiskJustification = async (fieldName, fieldValue, riskData) => {
+                // Open panel immediately with loading state
+                openJustificationPane(
+                    fieldName,
+                    fieldValue,
+                    "AI is generating justification...",
+                    ["Loading..."]
+                );
+
+                try {
+                    const context = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        attendance: attendanceInput.value,
+                        location: locationInput.value.trim(),
+                        riskDescription: riskData.risk,
+                        riskCategory: riskData.category,
+                        riskImpact: riskData.impact,
+                        riskLikelihood: riskData.likelihood,
+                        riskMitigation: riskData.mitigation
+                    };
+
+                    const justification = await aiService.generateJustification(
+                        fieldName,
+                        fieldValue,
+                        context
+                    );
+
+                    // Update panel with AI-generated content
+                    updateJustificationContent(justification.reasoning, justification.sources);
+
+                } catch (error) {
+                    console.error('Error generating AI justification:', error);
+                    // Update with fallback content
+                    const fallbackReasoning = `This assessment was determined through AI analysis considering the event type, scale, venue characteristics, and industry best practices.`;
+                    const fallbackSources = ['AI Risk Analysis', 'Industry Standards'];
+                    updateJustificationContent(fallbackReasoning, fallbackSources);
+                }
+            };
+
+            // Update justification content without reopening panel
+            const updateJustificationContent = (reasoning, sources) => {
+                justificationReasoning.textContent = reasoning;
+
+                justificationSources.innerHTML = '';
+                sources.forEach(source => {
+                    const li = document.createElement('li');
+                    li.textContent = source;
+                    justificationSources.appendChild(li);
+                });
+            };
+
             // --- Justification Pane Logic ---
             const openJustificationPane = (fieldName, fieldValue, reasoning, sources) => {
                 justificationFieldName.textContent = fieldName;
@@ -825,13 +929,42 @@ const { jsPDF } = window.jspdf;
                 console.error("Error: Close Justification Pane button with id='closeJustificationPaneBtn' NOT found. Please check the button ID in your HTML."); // Diagnostic log
             }
 
-            summaryJustificationIcon.addEventListener('click', () => {
+            summaryJustificationIcon.addEventListener('click', async () => {
+                // Open panel immediately with loading state
                 openJustificationPane(
                     'Contextual Summary',
                     summaryContent.innerHTML,
-                    'The summary was generated based on the project details provided and a comprehensive analysis of similar initiatives in the industry. It provides an overview of the event characteristics and historical context, highlighting key considerations for the current project.',
-                    ['Project Details', 'Industry Best Practices', 'Historical Data']
+                    'AI is generating justification...',
+                    ['Loading...']
                 );
+
+                try {
+                    const eventData = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        attendance: attendanceInput.value,
+                        location: locationInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        description: descriptionInput.value.trim()
+                    };
+
+                    const justification = await aiService.generateJustification(
+                        'Contextual Summary',
+                        summaryContent.innerHTML,
+                        eventData
+                    );
+
+                    // Update panel with AI-generated content
+                    updateJustificationContent(justification.reasoning, justification.sources);
+
+                } catch (error) {
+                    console.error('Error generating justification:', error);
+                    // Update with fallback content
+                    const fallbackReasoning = 'The summary was generated using AI analysis based on the event details provided, considering event type, scale, location, and industry best practices.';
+                    const fallbackSources = ['AI Analysis', 'Event Details', 'Industry Best Practices'];
+                    updateJustificationContent(fallbackReasoning, fallbackSources);
+                }
             });
 
             // --- PDF Export Logic ---
