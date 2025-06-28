@@ -154,7 +154,7 @@ class AIService {
      * @param {number} totalRisks - Total number of risks to generate
      * @returns {Promise<Object>}
      */
-    async generateSingleRisk(eventData, riskNumber, totalRisks = 6) {
+    async generateSingleRisk(eventData, riskNumber, totalRisks = 8) {
         const requestData = {
             ...eventData,
             riskNumber,
@@ -197,6 +197,58 @@ class AIService {
 
         const response = await this.makeRequest('/api/ai/generate-justification', requestData);
         return response;
+    }
+    /**
+     * Generate RekonContext Index details
+     * @param {Object} eventData - Event information
+     * @param {number} score - Calculated context score (1-7)
+     * @param {string} level - Context level name
+     * @returns {Promise<Array>} - Array of bullet point strings
+     */
+    async generateRekonContextDetails(eventData, score, level) {
+        const requestData = {
+            ...eventData,
+            score,
+            level
+        };
+        const response = await this.makeRequest('/api/ai/generate-rekon-context', requestData);
+        return response.details;
+    }
+
+    /**
+     * Generate RekonRisk Index details
+     * @param {Object} eventData - Event information
+     * @param {Array} risks - Array of risk objects
+     * @param {number} score - Calculated risk score (1-7)
+     * @param {string} level - Risk level name
+     * @returns {Promise<Array>} - Array of bullet point strings
+     */
+    async generateRekonRiskDetails(eventData, risks, score, level) {
+        const requestData = {
+            eventData,
+            risks,
+            score,
+            level
+        };
+        const response = await this.makeRequest('/api/ai/generate-rekon-risk', requestData);
+        return response.details;
+    }
+
+    /**
+     * Generate RekonCompliance Status details
+     * @param {Object} eventData - Event information
+     * @param {Array} risks - Array of risk objects
+     * @param {string} status - Compliance status
+     * @returns {Promise<Array>} - Array of bullet point strings
+     */
+    async generateRekonComplianceDetails(eventData, risks, status) {
+        const requestData = {
+            eventData,
+            risks,
+            status
+        };
+        const response = await this.makeRequest('/api/ai/generate-rekon-compliance', requestData);
+        return response.details;
     }
 
 

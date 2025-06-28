@@ -15,8 +15,13 @@ from openai import OpenAI
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
+# Reduce verbosity of external libraries
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('openai').setLevel(logging.WARNING)
 
 # Initialize Flask app with static file serving
 app = Flask(__name__, static_folder='risk-assessment', static_url_path='')
@@ -80,8 +85,8 @@ def generate_overview():
         )
         
         content = response.choices[0].message.content.strip()
-        logger.info(f"Generated overview paragraph: {len(content)} characters")
-        
+        # logger.info(f"Generated overview paragraph: {len(content)} characters")
+
         return jsonify({"content": content})
         
     except Exception as e:
@@ -117,8 +122,8 @@ def generate_operational():
         )
         
         content = response.choices[0].message.content.strip()
-        logger.info(f"Generated operational paragraph: {len(content)} characters")
-        
+        # logger.info(f"Generated operational paragraph: {len(content)} characters")
+
         return jsonify({"content": content})
         
     except Exception as e:
@@ -250,7 +255,7 @@ def generate_next_risk():
             # Store the generated risk in conversation context
             conversation['generated_risks'].append(validated_risk)
 
-            logger.info(f"Generated risk {risk_number} in conversation {conversation_id}: {validated_risk['risk'][:50]}...")
+            # logger.info(f"Generated risk {risk_number} in conversation {conversation_id}: {validated_risk['risk'][:50]}...")
             return jsonify({"risk": validated_risk})
 
         except json.JSONDecodeError as e:
@@ -290,7 +295,7 @@ def generate_additional_risks():
             )
 
             # Add context reminder about importance ranking
-            importance_reminder = f"""Remember: You are continuing the importance-based risk assessment. The first 6 risks were the most critical. Now generate risk #{risk_number} which should be the next most important concern for this specific event."""
+            importance_reminder = f"""Remember: You are continuing the importance-based risk assessment. The first 8 risks were the most critical. Now generate risk #{risk_number} which should be the next most important concern for this specific event."""
 
             # Add the request to conversation with importance context
             conversation['messages'].append({
@@ -320,7 +325,7 @@ def generate_additional_risks():
                 additional_risks.append(validated_risk)
                 conversation['generated_risks'].append(validated_risk)
 
-                logger.info(f"Generated additional risk {risk_number}: {validated_risk['risk'][:50]}...")
+                # logger.info(f"Generated additional risk {risk_number}: {validated_risk['risk'][:50]}...")
 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse additional risk JSON: {e}")
@@ -341,7 +346,7 @@ def generate_single_risk():
             return jsonify({"error": "No data provided"}), 400
 
         risk_number = data.get('riskNumber', 1)
-        total_risks = data.get('totalRisks', 6)
+        total_risks = data.get('totalRisks', 8)
 
         # Build the prompt for single risk generation
         prompt = build_single_risk_prompt(data, risk_number, total_risks)
@@ -369,7 +374,7 @@ def generate_single_risk():
         try:
             risk = json.loads(content)
             validated_risk = validate_and_format_single_risk(risk, risk_number)
-            logger.info(f"Generated single risk {risk_number}: {validated_risk['risk'][:50]}...")
+            # logger.info(f"Generated single risk {risk_number}: {validated_risk['risk'][:50]}...")
             return jsonify({"risk": validated_risk})
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse single risk JSON: {e}")
@@ -386,17 +391,17 @@ def generate_justification():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
-        
+
         field_name = data.get('fieldName')
         field_value = data.get('fieldValue')
         context = data.get('context', {})
-        
+
         if not field_name or not field_value:
             return jsonify({"error": "fieldName and fieldValue are required"}), 400
-        
+
         # Build the prompt for justification
         prompt = build_justification_prompt(field_name, field_value, context)
-        
+
         # Make request to OpenAI
         response = client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
@@ -413,16 +418,292 @@ def generate_justification():
             temperature=0.7,
             max_tokens=300
         )
-        
+
         content = response.choices[0].message.content.strip()
         justification = parse_justification_response(content)
-        
-        logger.info(f"Generated justification for {field_name}: {field_value}")
+
+        # logger.info(f"Generated justification for {field_name}: {field_value}")
         return jsonify(justification)
-        
+
     except Exception as e:
         logger.error(f"Error generating justification: {str(e)}")
         return jsonify({"error": f"Failed to generate justification: {str(e)}"}), 500
+
+@app.route('/api/ai/generate-rekon-context', methods=['POST'])
+def generate_rekon_context():
+    """Generate RekonContext Index details"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        score = data.get('score')
+        level = data.get('level')
+
+        if not score or not level:
+            return jsonify({"error": "score and level are required"}), 400
+
+        # Build the prompt for RekonContext details
+        prompt = build_rekon_context_prompt(data, score, level)
+
+        # Make request to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert risk assessment consultant. Generate exactly 3 CONCISE bullet points for the RekonContext Index. Each bullet point should be 1 short sentence (10-15 words max) and highly specific to the event details provided. Return only a JSON array of strings."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=400
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Parse JSON response
+        try:
+            details = json.loads(content)
+            if not isinstance(details, list) or len(details) != 3:
+                raise ValueError("Expected array of 3 strings")
+
+            # logger.info(f"Generated RekonContext details for level {level} (score {score})")
+            return jsonify({"details": details})
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse RekonContext JSON: {e}")
+            # Fallback to default structure
+            fallback_details = [
+                f"Event complexity requires {level.lower()} level planning and coordination.",
+                f"Risk profile indicates {level.lower()} operational oversight needed.",
+                f"Stakeholder engagement appropriate for {level.lower()} significance events."
+            ]
+            return jsonify({"details": fallback_details})
+
+    except Exception as e:
+        logger.error(f"Error generating RekonContext details: {str(e)}")
+        return jsonify({"error": f"Failed to generate RekonContext details: {str(e)}"}), 500
+
+@app.route('/api/ai/generate-rekon-risk', methods=['POST'])
+def generate_rekon_risk():
+    """Generate RekonRisk Index details"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        event_data = data.get('eventData', {})
+        risks = data.get('risks', [])
+        score = data.get('score')
+        level = data.get('level')
+
+        if not score or not level:
+            return jsonify({"error": "score and level are required"}), 400
+
+        # Build the prompt for RekonRisk details
+        prompt = build_rekon_risk_prompt(event_data, risks, score, level)
+
+        # Make request to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert risk assessment consultant. Generate exactly 3 CONCISE bullet points for the RekonRisk Index. Each bullet point should be 1 short sentence (10-15 words max) and specific to the actual risks identified. Return only a JSON array of strings."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=400
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Parse JSON response
+        try:
+            details = json.loads(content)
+            if not isinstance(details, list) or len(details) != 3:
+                raise ValueError("Expected array of 3 strings")
+
+            # logger.info(f"Generated RekonRisk details for level {level} (score {score})")
+            return jsonify({"details": details})
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse RekonRisk JSON: {e}")
+            # Fallback to default structure
+            fallback_details = [
+                f"Risk assessment indicates {level.lower()} level threats requiring active management.",
+                f"Impact potential suggests {level.lower()} priority mitigation strategies needed.",
+                f"Overall risk profile demands {level.lower()} level monitoring and response capabilities."
+            ]
+            return jsonify({"details": fallback_details})
+
+    except Exception as e:
+        logger.error(f"Error generating RekonRisk details: {str(e)}")
+        return jsonify({"error": f"Failed to generate RekonRisk details: {str(e)}"}), 500
+
+@app.route('/api/ai/generate-rekon-compliance', methods=['POST'])
+def generate_rekon_compliance():
+    """Generate RekonCompliance Status details"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        event_data = data.get('eventData', {})
+        risks = data.get('risks', [])
+        status = data.get('status')
+
+        if not status:
+            return jsonify({"error": "status is required"}), 400
+
+        # Build the prompt for RekonCompliance details
+        prompt = build_rekon_compliance_prompt(event_data, risks, status)
+
+        # Make request to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert risk assessment consultant. Generate exactly 3 CONCISE bullet points for the RekonCompliance Status. Each bullet point should be 1 short sentence (10-15 words max) about regulatory alignment (Martyn's Law, ProtectUK, ISO 27001). Return only a JSON array of strings."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=400
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Parse JSON response
+        try:
+            details = json.loads(content)
+            if not isinstance(details, list) or len(details) != 3:
+                raise ValueError("Expected array of 3 strings")
+
+            # logger.info(f"Generated RekonCompliance details for status {status}")
+            return jsonify({"details": details})
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse RekonCompliance JSON: {e}")
+            # Fallback to default structure based on status
+            if status == "Exceeds Compliance":
+                fallback_details = [
+                    "Assessment demonstrates comprehensive approach exceeding regulatory requirements.",
+                    "Risk identification and mitigation strategies surpass industry standards.",
+                    "Documentation and controls align with best practice frameworks."
+                ]
+            elif status == "Compliant":
+                fallback_details = [
+                    "Assessment meets essential regulatory requirements and standards.",
+                    "Risk management approach aligns with compliance frameworks.",
+                    "Basic security and safety considerations are appropriately addressed."
+                ]
+            else:  # Non-Compliant
+                fallback_details = [
+                    "Assessment lacks key elements required by regulatory frameworks.",
+                    "Critical security and safety risks are not adequately addressed.",
+                    "Additional risk identification and mitigation planning required."
+                ]
+            return jsonify({"details": fallback_details})
+
+    except Exception as e:
+        logger.error(f"Error generating RekonCompliance details: {str(e)}")
+        return jsonify({"error": f"Failed to generate RekonCompliance details: {str(e)}"}), 500
+
+def build_rekon_context_prompt(event_data, score, level):
+    """Build prompt for RekonContext Index details"""
+    return f"""Generate 3 specific bullet points explaining the contextual complexity for this RekonContext Index assessment:
+
+Event Details:
+- Title: {event_data.get('eventTitle', 'N/A')}
+- Date: {event_data.get('eventDate', 'N/A')}
+- Location: {event_data.get('location', 'N/A')}
+- Attendance: {event_data.get('attendance', 'N/A')} people
+- Event Type: {event_data.get('eventType', 'N/A')}
+- Venue Type: {event_data.get('venueType', 'N/A')}
+- Description: {event_data.get('description', 'Not provided')}
+
+RekonContext Assessment:
+- Score: {score}/7
+- Level: {level}
+
+Generate exactly 3 CONCISE bullet points that explain:
+1. The scale and logistical complexity specific to this event
+2. The public profile and stakeholder sensitivity for this event type
+3. The regulatory oversight and planning requirements for this specific event
+
+Each bullet point should be 1 SHORT sentence (10-15 words maximum) and highly specific to the actual event details provided.
+
+Return only a JSON array of 3 strings (no bullet point symbols, just the text)."""
+
+def build_rekon_risk_prompt(event_data, risks, score, level):
+    """Build prompt for RekonRisk Index details"""
+    risk_summary = "\n".join([f"- {risk.get('risk', 'N/A')} (Category: {risk.get('category', 'N/A')}, Impact: {risk.get('impact', 'N/A')}, Likelihood: {risk.get('likelihood', 'N/A')})" for risk in risks[:8]])  # Limit to first 8 for brevity
+
+    return f"""Generate 3 specific bullet points explaining the overall risk profile for this RekonRisk Index assessment:
+
+Event Details:
+- Title: {event_data.get('eventTitle', 'N/A')}
+- Event Type: {event_data.get('eventType', 'N/A')}
+- Venue Type: {event_data.get('venueType', 'N/A')}
+- Attendance: {event_data.get('attendance', 'N/A')} people
+
+Identified Risks:
+{risk_summary}
+
+RekonRisk Assessment:
+- Score: {score}/7
+- Level: {level}
+
+Generate exactly 3 CONCISE bullet points that explain:
+1. The nature and severity of risks identified for this specific event
+2. The impact potential and likelihood patterns across the risk categories
+3. The management and monitoring requirements based on the risk profile
+
+Each bullet point should be 1 SHORT sentence (10-15 words maximum) and reference the actual risks identified, not generic statements.
+
+Return only a JSON array of 3 strings (no bullet point symbols, just the text)."""
+
+def build_rekon_compliance_prompt(event_data, risks, status):
+    """Build prompt for RekonCompliance Status details"""
+    security_risks = [risk for risk in risks if risk.get('category') == 'Security']
+    risk_categories = list(set([risk.get('category', 'Unknown') for risk in risks]))
+
+    return f"""Generate 3 specific bullet points explaining the compliance status for this RekonCompliance assessment:
+
+Event Details:
+- Title: {event_data.get('eventTitle', 'N/A')}
+- Event Type: {event_data.get('eventType', 'N/A')}
+- Venue Type: {event_data.get('venueType', 'N/A')}
+- Attendance: {event_data.get('attendance', 'N/A')} people
+
+Risk Assessment Summary:
+- Total Risks Identified: {len(risks)}
+- Security Risks: {len(security_risks)}
+- Risk Categories Covered: {', '.join(risk_categories)}
+
+RekonCompliance Status: {status}
+
+Generate exactly 3 CONCISE bullet points that explain how this assessment aligns with:
+1. Martyn's Law (terrorism risk assessment and public safety)
+2. ProtectUK guidance (threat detection and security measures)
+3. ISO 27001 (information security risk management)
+
+Each bullet point should be 1 SHORT sentence (10-15 words maximum) and specific to the actual risks identified and the compliance status achieved.
+
+Return only a JSON array of 3 strings (no bullet point symbols, just the text)."""
 
 def build_overview_prompt(event_data):
     """Build prompt for overview paragraph"""
@@ -436,7 +717,7 @@ Event Type: {event_data.get('eventType', 'N/A')}
 Venue Type: {event_data.get('venueType', 'N/A')}
 Description: {event_data.get('description', 'Not provided')}
 
-Write exactly ONE paragraph (3-4 sentences) covering:
+Write exactly ONE paragraph (3-4 short sentences) covering:
 - Event description and its purpose
 - Scale and significance of the event
 - Location context and venue characteristics
@@ -456,7 +737,7 @@ Event Type: {event_data.get('eventType', 'N/A')}
 Venue Type: {event_data.get('venueType', 'N/A')}
 Description: {event_data.get('description', 'Not provided')}
 
-Write exactly ONE paragraph (3-4 sentences) covering:
+Write exactly ONE paragraph (3-4 short sentences) covering:
 - Key risk factors and safety considerations
 - Logistical challenges and operational requirements
 - Industry-specific considerations for this event type
@@ -477,7 +758,7 @@ Event Details:
 - Venue Type: {event_data.get('venueType', 'N/A')}
 - Description: {event_data.get('description', 'Not provided')}
 
-Generate 6-8 specific risks relevant to this event. Each risk must have:
+Generate 8 specific risks relevant to this event. Each risk must have:
 - id: sequential number starting from 1
 - risk: detailed description of the specific risk
 - category: one of "Crowd Safety", "Environmental", "Security", "Medical", "Operational", "Logistics"
@@ -533,7 +814,7 @@ CRITICAL REQUIREMENTS:
 4. Think about real-world scenarios that could occur at THIS specific event
 5. Ensure each risk is ACTIONABLE and REALISTIC
 
-I will ask you to generate 6 risks, starting with the MOST CRITICAL and working down to less critical but still important risks. Each should represent what would genuinely be the next biggest concern for this specific event."""
+I will ask you to generate 8 risks, starting with the MOST CRITICAL and working down to less critical but still important risks. Each should represent what would genuinely be the next biggest concern for this specific event."""
 
 def build_next_risk_prompt(previous_risks, risk_number):
     """Build prompt for next risk in order of importance"""
@@ -559,7 +840,9 @@ Return only valid JSON format."""
         3: "THIRD MOST CRITICAL - Major concern but less critical than #1-2",
         4: "FOURTH MOST CRITICAL - Significant risk requiring attention",
         5: "FIFTH MOST CRITICAL - Important but lower priority",
-        6: "SIXTH MOST CRITICAL - Additional risk to consider"
+        6: "SIXTH MOST CRITICAL - Additional risk to consider",
+        7: "SEVENTH MOST CRITICAL - Lower priority but still relevant",
+        8: "EIGHTH MOST CRITICAL - Lowest priority but still a risk to consider"
     }
 
     return f"""Generate the {importance_guidance.get(risk_number, 'NEXT MOST CRITICAL')} risk (#{risk_number}) for this specific event.
@@ -582,14 +865,14 @@ def build_additional_risk_prompt(existing_risks, risk_number):
     """Build prompt for generating additional risks in order of importance"""
 
     # Determine importance level based on risk number
-    if risk_number <= 6:
+    if risk_number <= 8:
         importance_level = f"{risk_number}th most critical"
-    elif risk_number == 7:
-        importance_level = "7th most critical (first secondary priority)"
-    elif risk_number == 8:
-        importance_level = "8th most critical (second secondary priority)"
     elif risk_number == 9:
-        importance_level = "9th most critical (third secondary priority)"
+        importance_level = "9th most critical (first secondary priority)"
+    elif risk_number == 10:
+        importance_level = "10th most critical (second secondary priority)"
+    elif risk_number == 11:
+        importance_level = "11th most critical (third secondary priority)"
     else:
         importance_level = f"{risk_number}th most critical (lower priority but still relevant)"
 

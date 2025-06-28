@@ -81,8 +81,14 @@ const { jsPDF } = window.jspdf;
             // --- RekonContext Elements ---
             const rekonContextSection = document.getElementById('rekonContextSection');
             const rekonContextScore = document.getElementById('rekonContextScore');
+            const rekonContextSlash = document.getElementById('rekonContextSlash');
             const rekonContextLevel = document.getElementById('rekonContextLevel');
             const rekonContextDescription = document.getElementById('rekonContextDescription');
+            const rekonContextLoader = document.getElementById('rekonContextLoader');
+
+            // --- RekonMetrics Loader Elements ---
+            const rekonRiskLoader = document.getElementById('rekonRiskLoader');
+            const rekonComplianceLoader = document.getElementById('rekonComplianceLoader');
 
             // --- Help Pane Elements ---
             const helpIconBtn = document.getElementById('helpIconBtn');
@@ -332,25 +338,16 @@ const { jsPDF } = window.jspdf;
 
                         // Generate risks progressively in order of importance
                         const totalRisks = 6;
-                        const importanceLabels = [
-                            "most critical",
-                            "second most critical",
-                            "third most critical",
-                            "fourth most critical",
-                            "fifth most critical",
-                            "sixth most critical"
-                        ];
 
                         for (let i = 1; i <= totalRisks; i++) {
                             const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
                             progressBar.style.width = `${progress}%`;
-                            const importanceLabel = importanceLabels[i-1] || `risk ${i}`;
-                            aiStatus.textContent = `AI is identifying ${importanceLabel} risk...`;
+                            aiStatus.textContent = `AI is identifying risks...`;
 
                             // Update table loader text to show current risk being generated
                             const tableLoaderText = document.querySelector('#tableLoader p');
                             if (tableLoaderText) {
-                                tableLoaderText.textContent = `AI is identifying ${importanceLabel} risk...`;
+                                tableLoaderText.textContent = `AI is identifying risks...`;
                             }
 
                             try {
@@ -540,12 +537,12 @@ const { jsPDF } = window.jspdf;
                     summaryContent.innerHTML = `
                         <div class="flex justify-center items-center py-4">
                             <div class="loader"></div>
-                            <p class="ml-4 text-zinc-500">AI is generating overview paragraph...</p>
+                            <p class="ml-4 text-zinc-500">AI is generating overview...</p>
                         </div>
                     `;
 
                     // Update status for first paragraph
-                    aiStatus.textContent = "AI is generating overview paragraph...";
+                    aiStatus.textContent = "AI is generating overview...";
                     progressBar.style.width = '15%';
 
                     // Generate and display first paragraph
@@ -578,7 +575,7 @@ const { jsPDF } = window.jspdf;
 
                     // Show actions
                     summaryActions.classList.remove('hidden');
-                    displayRekonContext();
+                    await displayRekonContext();
                     progressBar.style.width = '30%';
 
                     aiStatus.textContent = "Contextual summary generated. Awaiting review...";
@@ -632,7 +629,7 @@ const { jsPDF } = window.jspdf;
             });
 
             // --- Accept All Risks ---
-            acceptAllBtn.addEventListener('click', () => {
+            acceptAllBtn.addEventListener('click', async () => {
                 const rows = riskTableBody.querySelectorAll('tr');
                 rows.forEach(row => {
                     const actionsCell = row.cells[row.cells.length - 1]; // Last cell is Actions
@@ -643,7 +640,7 @@ const { jsPDF } = window.jspdf;
                     }
                 });
                 acceptAllBtn.disabled = true;
-                checkAndDisplayMetrics();
+                await checkAndDisplayMetrics();
             });
 
             // --- Generate More Risks ---
@@ -658,11 +655,6 @@ const { jsPDF } = window.jspdf;
 
                 // Show status for importance-based additional risks
                 const currentRiskCount = riskData.length;
-                const importanceLabels = [
-                    "7th most critical",
-                    "8th most critical",
-                    "9th most critical"
-                ];
 
                 console.log(`🔄 Generating additional risks starting from #${currentRiskCount + 1} (continuing importance ranking)`);
 
@@ -837,7 +829,7 @@ const { jsPDF } = window.jspdf;
                 riskTableBody.appendChild(row);
             };
             
-            riskTableBody.addEventListener('click', (e) => {
+            riskTableBody.addEventListener('click', async (e) => {
                 const button = e.target.closest('button');
                 const justificationIcon = e.target.closest('.justification-plus-icon');
 
@@ -894,12 +886,12 @@ const { jsPDF } = window.jspdf;
                     row.classList.remove('table-row-new');
                     row.classList.add('table-row-accepted');
                     button.parentElement.innerHTML = '<span class="text-sm text-green-700 font-semibold">Accepted</span>';
-                    checkAndDisplayMetrics();
+                    await checkAndDisplayMetrics();
                 } else if (action === 'delete') {
                     if (confirm('Are you sure you want to delete this risk?')) {
                         row.remove();
                         riskData = riskData.filter(r => r.id !== id);
-                        checkAndDisplayMetrics();
+                        await checkAndDisplayMetrics();
                     }
                 } else if (action === 'edit') {
                     row.querySelectorAll('[data-field]').forEach(cell => {
@@ -973,12 +965,12 @@ const { jsPDF } = window.jspdf;
                 }
             });
 
-            const checkAndDisplayMetrics = () => {
+            const checkAndDisplayMetrics = async () => {
                 const totalRisks = riskTableBody.querySelectorAll('tr').length;
                 const acceptedRisks = riskTableBody.querySelectorAll('.table-row-accepted').length;
-            
+
                 if (totalRisks > 0 && totalRisks === acceptedRisks) {
-                    displayRekonMetrics();
+                    await displayRekonMetrics();
                 } else {
                     rekonMetricsSection.classList.add('hidden');
                 }
@@ -1122,35 +1114,107 @@ const { jsPDF } = window.jspdf;
                 };
             };
 
-            const displayRekonMetrics = () => {
+            const displayRekonMetrics = async () => {
                 const score = getRekonRiskScore(riskData);
                 const compliance = getRekonCompliance(riskData);
                 const levelInfo = REKON_RISK_LEVELS[score];
 
-                rekonRiskScore.textContent = score;
-                rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
-                rekonRiskLevel.textContent = levelInfo.level;
-                
-                const riskDescHtml = `
-                    <ul class="list-disc list-inside space-y-1 mt-2">
-                        ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
-                    </ul>
-                `;
-                rekonRiskDescription.innerHTML = riskDescHtml;
-
-                rekonComplianceStatus.textContent = compliance.status;
-                const complianceDescHtml = `
-                    <ul class="list-disc list-inside space-y-1 mt-2">
-                        ${compliance.details.map(item => `<li>${item}</li>`).join('')}
-                    </ul>
-                `;
-                rekonComplianceDescription.innerHTML = complianceDescHtml;
-                rekonComplianceIcon.innerHTML = COMPLIANCE_ICONS[compliance.status] || '';
-
-                rekonComplianceStatus.className = 'text-2xl font-bold'; // Reset color class
-
+                // Show section but hide scores/status until AI content is ready
                 rekonMetricsSection.classList.remove('hidden');
                 rekonMetricsSection.classList.add('fade-in');
+
+                // Clear scores/status initially
+                rekonRiskScore.textContent = '';
+                rekonRiskLevel.textContent = '';
+                rekonComplianceStatus.textContent = '';
+                rekonComplianceIcon.innerHTML = '';
+
+                // Prepare event data for AI
+                const eventData = {
+                    eventTitle: eventTitleInput.value.trim(),
+                    eventDate: eventDateInput.value,
+                    location: locationInput.value.trim(),
+                    attendance: attendanceInput.value,
+                    eventType: eventTypeInput.value,
+                    venueType: venueTypeInput.value,
+                    description: descriptionInput.value.trim()
+                };
+
+                // Generate AI content for RekonRisk details
+                try {
+                    aiStatus.textContent = 'AI is generating risk analysis...';
+                    progressBar.style.width = '95%';
+
+                    rekonRiskLoader.classList.remove('hidden');
+                    rekonRiskDescription.innerHTML = '';
+
+                    const aiRiskDetails = await aiService.generateRekonRiskDetails(eventData, riskData, score, levelInfo.level);
+
+                    // Display score/level with AI content simultaneously
+                    rekonRiskLoader.classList.add('hidden');
+                    rekonRiskScore.textContent = score;
+                    rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonRiskLevel.textContent = levelInfo.level;
+
+                    const riskDescHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${aiRiskDetails.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonRiskDescription.innerHTML = riskDescHtml;
+
+                } catch (error) {
+                    console.error('Error generating RekonRisk details:', error);
+                    rekonRiskLoader.classList.add('hidden');
+                    rekonRiskScore.textContent = score;
+                    rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonRiskLevel.textContent = levelInfo.level;
+
+                    const riskDescHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonRiskDescription.innerHTML = riskDescHtml;
+                }
+
+                // Generate AI content for RekonCompliance details
+                try {
+                    aiStatus.textContent = 'AI is generating compliance analysis...';
+                    progressBar.style.width = '98%';
+
+                    rekonComplianceLoader.classList.remove('hidden');
+                    rekonComplianceDescription.innerHTML = '';
+
+                    const aiComplianceDetails = await aiService.generateRekonComplianceDetails(eventData, riskData, compliance.status);
+
+                    // Display status/icon with AI content simultaneously
+                    rekonComplianceLoader.classList.add('hidden');
+                    rekonComplianceStatus.textContent = compliance.status;
+                    rekonComplianceIcon.innerHTML = COMPLIANCE_ICONS[compliance.status] || '';
+                    rekonComplianceStatus.className = 'text-2xl font-bold';
+
+                    const complianceDescHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${aiComplianceDetails.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonComplianceDescription.innerHTML = complianceDescHtml;
+
+                } catch (error) {
+                    console.error('Error generating RekonCompliance details:', error);
+                    rekonComplianceLoader.classList.add('hidden');
+                    rekonComplianceStatus.textContent = compliance.status;
+                    rekonComplianceIcon.innerHTML = COMPLIANCE_ICONS[compliance.status] || '';
+                    rekonComplianceStatus.className = 'text-2xl font-bold';
+
+                    const complianceDescHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${compliance.details.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonComplianceDescription.innerHTML = complianceDescHtml;
+                }
 
                 // Finalize progress and enable export
                 progressBar.style.width = '100%';
@@ -1764,27 +1828,69 @@ const { jsPDF } = window.jspdf;
                 console.error("Close Help Pane Button (expected id 'closeHelpPaneBtn') not found.");
             }
 
-            const displayRekonContext = () => {
+            const displayRekonContext = async () => {
                 const eventType = eventTypeInput.value;
                 const venueType = venueTypeInput.value;
                 const attendance = attendanceInput.value;
 
                 const score = getRekonContext(eventType, venueType, attendance);
                 const levelInfo = REKON_CONTEXT_LEVELS[score];
-        
-                rekonContextScore.textContent = score;
-                rekonContextScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
-                rekonContextLevel.textContent = levelInfo.level;
-                
-                // Create bullet points
-                const descriptionHtml = `
-                    <ul class="list-disc list-inside space-y-1 mt-2">
-                        ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
-                    </ul>
-                `;
-                rekonContextDescription.innerHTML = descriptionHtml;
-        
+
+                // Show section but hide score/level/slash until AI content is ready
                 rekonContextSection.classList.remove('hidden');
+                rekonContextScore.textContent = '';
+                rekonContextSlash.style.visibility = 'hidden';
+                rekonContextLevel.textContent = '';
+
+                // Show loading indicator and generate AI content
+                rekonContextLoader.classList.remove('hidden');
+                rekonContextDescription.innerHTML = '';
+
+                try {
+                    // Prepare event data for AI
+                    const eventData = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        location: locationInput.value.trim(),
+                        attendance: attendanceInput.value,
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        description: descriptionInput.value.trim()
+                    };
+
+                    // Generate AI content for the context details
+                    const aiDetails = await aiService.generateRekonContextDetails(eventData, score, levelInfo.level);
+
+                    // Hide loader and display score/level/slash with AI-generated content simultaneously
+                    rekonContextLoader.classList.add('hidden');
+                    rekonContextScore.textContent = score;
+                    rekonContextScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonContextSlash.style.visibility = 'visible';
+                    rekonContextLevel.textContent = levelInfo.level;
+
+                    const descriptionHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${aiDetails.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonContextDescription.innerHTML = descriptionHtml;
+
+                } catch (error) {
+                    console.error('Error generating RekonContext details:', error);
+                    // Hide loader and fall back to hardcoded content with score/level/slash
+                    rekonContextLoader.classList.add('hidden');
+                    rekonContextScore.textContent = score;
+                    rekonContextScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonContextSlash.style.visibility = 'visible';
+                    rekonContextLevel.textContent = levelInfo.level;
+
+                    const descriptionHtml = `
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            ${levelInfo.details.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    rekonContextDescription.innerHTML = descriptionHtml;
+                }
             };
 
             const REKON_CONTEXT_LEVELS = {
