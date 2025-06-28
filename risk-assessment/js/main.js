@@ -317,32 +317,47 @@ const { jsPDF } = window.jspdf;
 
                     aiStatus.textContent = "AI is generating risk assessment...";
 
-                    // Generate AI-powered risk assessment
-                    const aiRisks = await aiService.generateRiskAssessment(eventData);
+                    // Generate risks progressively - one by one
+                    const totalRisks = 6;
 
-                    progressBar.style.width = '60%';
-                    aiStatus.textContent = "Processing generated risks...";
-
-                    // Add each risk to the table with animation
-                    for (let i = 0; i < aiRisks.length; i++) {
-                        const risk = aiRisks[i];
-                        const progress = 60 + (i / aiRisks.length) * 30; // 60% to 90%
+                    for (let i = 1; i <= totalRisks; i++) {
+                        const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
                         progressBar.style.width = `${progress}%`;
-                        aiStatus.textContent = `Adding Risk ${i + 1} of ${aiRisks.length}`;
-                        await sleep(500);
-                        addRiskRow(risk);
-                        // Add justification fields to store generated justifications
-                        riskData.push({
-                            ...risk,
-                            justifications: {
-                                risk: null,
-                                category: null,
-                                impact: null,
-                                likelihood: null,
-                                mitigation: null,
-                                overall: null
-                            }
-                        });
+                        aiStatus.textContent = `AI is generating risk ${i} of ${totalRisks}...`;
+
+                        // Update table loader text to show current risk being generated
+                        const tableLoaderText = document.querySelector('#tableLoader p');
+                        if (tableLoaderText) {
+                            tableLoaderText.textContent = `AI is generating risk ${i} of ${totalRisks}...`;
+                        }
+
+                        try {
+                            // Generate single risk
+                            const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
+
+                            // Add the risk to the table immediately
+                            addRiskRow(risk);
+
+                            // Add to risk data with justification fields
+                            riskData.push({
+                                ...risk,
+                                justifications: {
+                                    risk: null,
+                                    category: null,
+                                    impact: null,
+                                    likelihood: null,
+                                    mitigation: null,
+                                    overall: null
+                                }
+                            });
+
+                            // Brief pause to let user see the new row
+                            await sleep(300);
+
+                        } catch (error) {
+                            console.error(`Error generating risk ${i}:`, error);
+                            // Continue with next risk even if one fails
+                        }
                     }
 
                     tableLoader.classList.add('hidden');

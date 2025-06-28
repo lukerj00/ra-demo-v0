@@ -123,6 +123,23 @@ class AIService {
     }
 
     /**
+     * Generate a single risk for progressive loading
+     * @param {Object} eventData - Event information
+     * @param {number} riskNumber - Which risk number to generate (1-based)
+     * @param {number} totalRisks - Total number of risks to generate
+     * @returns {Promise<Object>}
+     */
+    async generateSingleRisk(eventData, riskNumber, totalRisks = 6) {
+        const requestData = {
+            ...eventData,
+            riskNumber,
+            totalRisks
+        };
+        const response = await this.makeRequest('/api/ai/generate-single-risk', requestData);
+        return response.risk;
+    }
+
+    /**
      * Generate justification for a specific field
      * @param {string} fieldName - Name of the field
      * @param {string} fieldValue - Value of the field

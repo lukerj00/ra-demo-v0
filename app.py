@@ -18,8 +18,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app
-app = Flask(__name__)
+# Initialize Flask app with static file serving
+app = Flask(__name__, static_folder='risk-assessment', static_url_path='')
 
 # Configure CORS to allow requests from the frontend
 # Allow all origins in development - restrict in production
@@ -37,6 +37,11 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize OpenAI client: {e}")
     raise
+
+@app.route('/')
+def index():
+    """Serve the main application"""
+    return app.send_static_file('index.html')
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -124,10 +129,10 @@ def generate_risks():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
-        
+
         # Build the prompt for risk assessment
         prompt = build_risk_assessment_prompt(data)
-        
+
         # Make request to OpenAI
         response = client.chat.completions.create(
             model="gpt-4o-mini-2024-07-18",
@@ -144,9 +149,9 @@ def generate_risks():
             temperature=0.7,
             max_tokens=2000
         )
-        
+
         content = response.choices[0].message.content.strip()
-        
+
         # Parse JSON response
         try:
             risks = json.loads(content)
@@ -156,10 +161,57 @@ def generate_risks():
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse risk assessment JSON: {e}")
             return jsonify({"error": "Invalid risk assessment format received from AI"}), 500
-        
+
     except Exception as e:
         logger.error(f"Error generating risks: {str(e)}")
         return jsonify({"error": f"Failed to generate risks: {str(e)}"}), 500
+
+@app.route('/api/ai/generate-single-risk', methods=['POST'])
+def generate_single_risk():
+    """Generate a single risk for progressive loading"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        risk_number = data.get('riskNumber', 1)
+        total_risks = data.get('totalRisks', 6)
+
+        # Build the prompt for single risk generation
+        prompt = build_single_risk_prompt(data, risk_number, total_risks)
+
+        # Make request to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert risk assessment consultant. Generate a single detailed risk in JSON format. The risk should have: id, risk (description), category, impact (1-5), likelihood (1-5), and mitigation."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=400
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Parse JSON response
+        try:
+            risk = json.loads(content)
+            validated_risk = validate_and_format_single_risk(risk, risk_number)
+            logger.info(f"Generated single risk {risk_number}: {validated_risk['risk'][:50]}...")
+            return jsonify({"risk": validated_risk})
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse single risk JSON: {e}")
+            return jsonify({"error": "Invalid risk format received from AI"}), 500
+
+    except Exception as e:
+        logger.error(f"Error generating single risk: {str(e)}")
+        return jsonify({"error": f"Failed to generate single risk: {str(e)}"}), 500
 
 @app.route('/api/ai/generate-justification', methods=['POST'])
 def generate_justification():
@@ -269,6 +321,31 @@ Generate 6-8 specific risks relevant to this event. Each risk must have:
 
 Return only the JSON array, no additional text or formatting."""
 
+def build_single_risk_prompt(event_data, risk_number, total_risks):
+    """Build prompt for single risk generation"""
+    return f"""Generate risk #{risk_number} of {total_risks} for the following event. Return ONLY valid JSON object format.
+
+Event Details:
+- Title: {event_data.get('eventTitle', 'N/A')}
+- Date: {event_data.get('eventDate', 'N/A')}
+- Location: {event_data.get('location', 'N/A')}
+- Attendance: {event_data.get('attendance', 'N/A')} people
+- Event Type: {event_data.get('eventType', 'N/A')}
+- Venue Type: {event_data.get('venueType', 'N/A')}
+- Description: {event_data.get('description', 'Not provided')}
+
+Generate 1 specific risk relevant to this event. The risk must have:
+- id: {risk_number}
+- risk: detailed description of the specific risk
+- category: one of "Crowd Safety", "Environmental", "Security", "Medical", "Operational", "Logistics"
+- impact: number 1-5 (1=minimal, 5=catastrophic)
+- likelihood: number 1-5 (1=rare, 5=almost certain)
+- mitigation: specific, actionable mitigation strategy
+
+Focus on risk #{risk_number} being a {'high priority' if risk_number <= 2 else 'medium priority' if risk_number <= 4 else 'standard'} risk for this type of event.
+
+Return only the JSON object, no additional text or formatting."""
+
 def build_justification_prompt(field_name, field_value, context):
     """Build prompt for justification generation"""
     # Special handling for contextual summary
@@ -356,6 +433,21 @@ def validate_and_format_risks(risks):
         formatted_risks.append(formatted_risk)
 
     return formatted_risks
+
+def validate_and_format_single_risk(risk, risk_id):
+    """Validate and format a single risk from AI response"""
+    valid_categories = ['Crowd Safety', 'Environmental', 'Security', 'Medical', 'Operational', 'Logistics']
+
+    formatted_risk = {
+        'id': risk.get('id', risk_id),
+        'risk': risk.get('risk', 'Risk description not provided'),
+        'category': risk.get('category') if risk.get('category') in valid_categories else 'Operational',
+        'impact': validate_score(risk.get('impact')),
+        'likelihood': validate_score(risk.get('likelihood')),
+        'mitigation': risk.get('mitigation', 'Mitigation strategy not provided')
+    }
+
+    return formatted_risk
 
 def validate_score(score):
     """Validate risk score (1-5)"""
