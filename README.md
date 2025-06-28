@@ -83,9 +83,15 @@ Frontend (HTML/JS) → Flask Backend → OpenAI API
 
 ### How It Works
 
-1. **First Time**: Click a justification icon → AI generates content → Content is cached
-2. **Subsequent Times**: Click the same field → Cached content is instantly displayed
-3. **After Editing**: Edit a risk value → Related cached justifications are cleared → Fresh AI content generated on next click
+1. **First Time**: Click a justification icon → AI generates content → Content is stored in data structure
+2. **Subsequent Times**: Click the same field → Stored content is instantly displayed
+3. **After Editing**: Edit a risk value → Related stored justifications are cleared → Fresh AI content generated on next click
+
+### UI Improvements
+
+- **Better Loading States**: Loading messages now appear directly in the content area where the final text will be displayed
+- **Progressive Generation**: Shows "🤖 AI is generating overview paragraph..." then "🤖 AI is generating operational considerations..." in the actual summary area
+- **Contextual Placement**: No separate loading spinners - everything appears where it belongs
 
 ## Security Benefits
 

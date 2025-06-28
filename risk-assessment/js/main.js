@@ -455,10 +455,6 @@ const { jsPDF } = window.jspdf;
                     aiStatus.textContent = "AI is generating contextual summary...";
                     progressBar.style.width = '10%';
 
-                    // Show loading indicator
-                    summaryLoader.classList.remove('hidden');
-                    summaryLoader.classList.add('fade-in');
-
                     // Prepare event data for AI
                     const eventData = {
                         eventTitle: eventTitleInput.value.trim(),
@@ -470,14 +466,13 @@ const { jsPDF } = window.jspdf;
                         description: descriptionInput.value.trim()
                     };
 
-                    // Show summary section early (but empty)
+                    // Show summary section with loading message in content area
                     summarySection.classList.remove('hidden');
                     summarySection.classList.add('fade-in');
-                    summaryContent.innerHTML = '';
+                    summaryContent.innerHTML = '<p class="text-gray-500 italic">🤖 AI is generating overview paragraph...</p>';
 
                     // Update status for first paragraph
                     aiStatus.textContent = "AI is generating overview paragraph...";
-                    summaryLoaderText.textContent = "AI is generating overview paragraph...";
                     progressBar.style.width = '15%';
 
                     // Generate and display first paragraph
@@ -487,9 +482,9 @@ const { jsPDF } = window.jspdf;
                     // Brief pause to let user see first paragraph
                     await sleep(800);
 
-                    // Update status for second paragraph
+                    // Update status and content for second paragraph
                     aiStatus.textContent = "AI is generating operational considerations...";
-                    summaryLoaderText.textContent = "AI is generating operational considerations...";
+                    summaryContent.innerHTML = `<p>${paragraph1}</p>\n<p class="text-gray-500 italic">🤖 AI is generating operational considerations...</p>`;
                     progressBar.style.width = '25%';
 
                     // Generate and add second paragraph
@@ -499,8 +494,7 @@ const { jsPDF } = window.jspdf;
                     // Update state to indicate summary is generated
                     updateApplicationState({ summaryGenerated: true });
 
-                    // Hide loading indicator and show actions
-                    summaryLoader.classList.add('hidden');
+                    // Show actions
                     summaryActions.classList.remove('hidden');
                     displayRekonContext();
                     progressBar.style.width = '30%';
@@ -508,8 +502,8 @@ const { jsPDF } = window.jspdf;
                     aiStatus.textContent = "Contextual summary generated. Awaiting review...";
                 } catch (error) {
                     console.error('Error generating AI summary:', error);
-                    // Hide loading indicator on error
-                    summaryLoader.classList.add('hidden');
+                    // Show error message in content area
+                    summaryContent.innerHTML = '<p class="text-red-500">❌ Error generating summary. Please check your API key and try again.</p>';
                     aiStatus.textContent = "Error generating summary. Please check your API key and try again.";
                     alert('Failed to generate AI summary: ' + error.message);
                     return;
