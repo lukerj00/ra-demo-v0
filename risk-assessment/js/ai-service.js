@@ -98,8 +98,8 @@ class AIService {
      * @returns {Promise<string>}
      */
     async generateOverviewParagraph(eventData) {
-        const response = await this.makeRequest('/api/ai/generate-overview', eventData);
-        return response.content.trim();
+        const response = await this.makeRequest('/api/ai/generate-overview', { eventData });
+        return response.overview;
     }
 
     /**
@@ -108,8 +108,8 @@ class AIService {
      * @returns {Promise<string>}
      */
     async generateOperationalParagraph(eventData) {
-        const response = await this.makeRequest('/api/ai/generate-operational', eventData);
-        return response.content.trim();
+        const response = await this.makeRequest('/api/ai/generate-operational', { eventData });
+        return response.operational;
     }
 
     /**
@@ -118,7 +118,7 @@ class AIService {
      * @returns {Promise<Array>}
      */
     async generateRiskAssessment(eventData) {
-        const response = await this.makeRequest('/api/ai/generate-risks', eventData);
+        const response = await this.makeRequest('/api/ai/generate-risks', { eventData });
         return response.risks;
     }
 
@@ -128,8 +128,8 @@ class AIService {
      * @returns {Promise<string>} - Conversation ID
      */
     async startRiskConversation(eventData) {
-        const response = await this.makeRequest('/api/ai/start-risk-conversation', eventData);
-        return response.conversation_id;
+        const response = await this.makeRequest('/api/ai/start-risk-conversation', { eventData });
+        return response.conversationId;
     }
 
     /**
@@ -140,8 +140,8 @@ class AIService {
      */
     async generateNextRisk(conversationId, riskNumber) {
         const requestData = {
-            conversation_id: conversationId,
-            risk_number: riskNumber
+            conversationId: conversationId,
+            riskNumber: riskNumber
         };
         const response = await this.makeRequest('/api/ai/generate-next-risk', requestData);
         return response.risk;
@@ -156,7 +156,7 @@ class AIService {
      */
     async generateSingleRisk(eventData, riskNumber, totalRisks = 8) {
         const requestData = {
-            ...eventData,
+            eventData,
             riskNumber,
             totalRisks
         };
@@ -171,11 +171,11 @@ class AIService {
      * @param {number} numAdditional - Number of additional risks to generate
      * @returns {Promise<Array>}
      */
-    async generateAdditionalRisks(conversationId, existingRisks, numAdditional = 3) {
+    async generateAdditionalRisks(eventData, existingRisks, numAdditional = 3) {
         const requestData = {
-            conversation_id: conversationId,
-            existing_risks: existingRisks,
-            num_additional: numAdditional
+            eventData: eventData,
+            existingRisks: existingRisks,
+            numRisks: numAdditional
         };
         const response = await this.makeRequest('/api/ai/generate-additional-risks', requestData);
         return response.risks;
@@ -188,11 +188,11 @@ class AIService {
      * @param {Object} context - Additional context
      * @returns {Promise<Object>}
      */
-    async generateJustification(fieldName, fieldValue, context = {}) {
+    async generateJustification(eventData, fieldType, fieldValue) {
         const requestData = {
-            fieldName,
-            fieldValue,
-            context
+            eventData,
+            fieldType,
+            fieldValue
         };
 
         const response = await this.makeRequest('/api/ai/generate-justification', requestData);
@@ -207,7 +207,7 @@ class AIService {
      */
     async generateRekonContextDetails(eventData, score, level) {
         const requestData = {
-            ...eventData,
+            eventData,
             score,
             level
         };
