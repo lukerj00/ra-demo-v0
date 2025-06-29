@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 class MainAppRiskAssessmentIntegration:
     """Example integration class for main application"""
     
-    def __init__(self, ra_tool_base_url="http://localhost:6001"):
+    def __init__(self, ra_tool_base_url="http://localhost:7001"):
         self.ra_tool_base_url = ra_tool_base_url
     
     def transform_event_data(self, main_app_event):

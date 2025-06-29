@@ -11,8 +11,8 @@ import webbrowser
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "http://localhost:6001"
-FRONTEND_URL = "http://localhost:6001"
+BASE_URL = "http://localhost:7001"
+FRONTEND_URL = "http://localhost:7001"
 
 # Test event data
 TEST_EVENT_DATA = {

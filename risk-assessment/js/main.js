@@ -205,6 +205,15 @@ const { jsPDF } = window.jspdf;
                 }
             };
 
+            const showApiOnlyMessage = () => {
+                // Show screen1 with API-only message
+                screen1.classList.remove('hidden');
+                screen2.classList.add('hidden');
+
+                console.log('🔒 API-Only Mode: No session parameter provided');
+                console.log('This tool requires integration with a main application');
+            };
+
             const startApiModeAssessment = async (eventData) => {
                 // Populate form fields with session data (for internal use)
                 eventTitleInput.value = eventData.eventTitle || '';
@@ -217,18 +226,8 @@ const { jsPDF } = window.jspdf;
                 descriptionInput.value = eventData.description || '';
 
                 // Update venue type options based on event type
-                if (eventData.eventType && typeOptions[eventData.eventType]) {
-                    venueTypeInput.innerHTML = '<option value="">Select Venue Type</option>';
-                    typeOptions[eventData.eventType].forEach(option => {
-                        const optionElement = document.createElement('option');
-                        optionElement.value = option;
-                        optionElement.textContent = option;
-                        if (option === eventData.venueType) {
-                            optionElement.selected = true;
-                        }
-                        venueTypeInput.appendChild(optionElement);
-                    });
-                }
+                populateVenueTypeOptions(eventData.eventType);
+                venueTypeInput.value = eventData.venueType || '';
 
                 // Skip form screen and start generation directly
                 screen1.style.display = 'none';
@@ -345,69 +344,35 @@ const { jsPDF } = window.jspdf;
                 }
             };
 
-            // Initialize based on mode
+            // API-Only Mode: Always require session parameter
             if (isApiMode && sessionId) {
-                // API Mode: Load session data and start assessment
+                // Load session data and start assessment
                 loadSessionData(sessionId).then(eventData => {
                     if (eventData) {
                         startApiModeAssessment(eventData);
                     }
                 });
+            } else {
+                // Show API-only message if no session provided
+                showApiOnlyMessage();
             }
 
-            // --- Form & File Upload Logic ---
-            const validateForm = () => {
-                const requiredFields = [
-                    eventTitleInput.value.trim(),
-                    eventDateInput.value,
-                    locationInput.value.trim(),
-                    attendanceInput.value,
-                    eventTypeInput.value
-                ];
+            // --- API-Only Mode: No form validation needed ---
+            // Form elements are populated via API data only
+            // Venue type options are still needed for display purposes
 
-                // Only require venue type if event type is selected and venue options are available
-                if (eventTypeInput.value && venueTypeInput.options.length > 1) {
-                    requiredFields.push(venueTypeInput.value);
-                }
-
-                generateBtn.disabled = !requiredFields.every(field => field);
-            };
-
-            eventTitleInput.addEventListener('input', validateForm);
-            eventDateInput.addEventListener('input', validateForm);
-            locationInput.addEventListener('input', validateForm);
-            attendanceInput.addEventListener('input', validateForm);
-            eventTypeInput.addEventListener('input', validateForm);
-            venueTypeInput.addEventListener('input', validateForm);
-
-            // Event Type change handler to populate Venue Type dropdown
-            eventTypeInput.addEventListener('change', (e) => {
-                const selectedEventType = e.target.value;
-
+            const populateVenueTypeOptions = (eventType) => {
                 venueTypeInput.innerHTML = '';
 
-                if (selectedEventType && typeOptions[selectedEventType]) {
-                    const defaultOption = document.createElement('option');
-                    defaultOption.textContent = 'Select Venue Type';
-                    defaultOption.value = '';
-                    venueTypeInput.appendChild(defaultOption);
-
-                    typeOptions[selectedEventType].forEach(type => {
+                if (eventType && typeOptions[eventType]) {
+                    typeOptions[eventType].forEach(type => {
                         const option = document.createElement('option');
                         option.textContent = type;
                         option.value = type;
                         venueTypeInput.appendChild(option);
                     });
-                } else {
-                    const defaultOption = document.createElement('option');
-                    defaultOption.textContent = 'Select Event Type first';
-                    defaultOption.value = '';
-                    venueTypeInput.appendChild(defaultOption);
                 }
-
-                // Re-validate form after venue type options change
-                validateForm();
-            });
+            };
 
             const handleFiles = (files) => {
                 fileList.innerHTML = '';
@@ -768,7 +733,7 @@ const { jsPDF } = window.jspdf;
 
             };
 
-            generateBtn.addEventListener('click', startGeneration);
+            // Generate button only used in API mode - no standalone form functionality
 
             // --- Summary Actions ---
             acceptSummaryBtn.addEventListener('click', async () => {

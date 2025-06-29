@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 class MainAppSimulation:
     """Simulates a main application integrating with AIREKON RA tool"""
     
-    def __init__(self, ra_tool_url="http://localhost:6001"):
+    def __init__(self, ra_tool_url="http://localhost:7001"):
         self.ra_tool_url = ra_tool_url
         self.events_database = {}  # Simulated database
         self.assessments_database = {}  # Simulated assessments storage

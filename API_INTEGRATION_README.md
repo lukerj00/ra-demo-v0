@@ -176,12 +176,53 @@ When accessed with `?session=uuid` parameter:
 - Standardized results format
 - Complete integration workflow
 
+✅ **Stage 3 - Streamlined for Production:**
+- **Removed standalone form interface** - Pure API-only mode
+- **Eliminated redundant code** - Form validation, standalone generation
+- **Simplified user experience** - Direct API integration only
+- **Clean codebase** - Focused on main app integration
+- **API-first design** - No manual form entry capability
+
 🚧 **TODO (Future Enhancements):**
 - Return URL redirect functionality
 - Session persistence (Redis/database)
 - Webhook notifications
 - Enhanced error handling
 - Session timeouts and auto-cleanup
+
+## Streamlined API-Only Design
+
+The AIREKON Risk Assessment tool has been optimized for seamless main app integration:
+
+### **What Was Removed:**
+- ❌ **Standalone form interface** - No manual event entry
+- ❌ **Form validation logic** - No client-side validation needed
+- ❌ **Generate button handlers** - No standalone generation capability
+- ❌ **Manual file upload UI** - API-driven only
+
+### **What Remains:**
+- ✅ **Pure API integration** - Session-based workflow only
+- ✅ **Complete assessment functionality** - All AI generation features
+- ✅ **Results export** - Standardized JSON format
+- ✅ **Clean user experience** - Direct from main app to assessment
+
+### **User Experience:**
+- **Without session:** Shows API-only message with integration instructions
+- **With session:** Immediately loads event data and starts assessment
+- **No forms to fill:** All data comes from main app via API
+- **Seamless workflow:** Generate → Complete → Return to main app
+
+## Quick Start
+
+1. **Start the RA Tool server:**
+   ```bash
+   python app.py --port=7001
+   ```
+
+2. **Test the integration:**
+   ```bash
+   python test_api_integration.py
+   ```
 
 ## Example Integration Code
 
