@@ -1,441 +1,62 @@
+/**
+ * Main Application Entry Point
+ * Modularized Risk Assessment Application
+ */
+
+// Import all modules
+import { DOMElements } from './modules/dom-elements.js';
+import { StateManager } from './modules/state-management.js';
+import { FormValidator } from './modules/form-validation.js';
+import { UIManager } from './modules/ui-manager.js';
+import { TableManager } from './modules/table-manager.js';
+import { JustificationManager } from './modules/justification-manager.js';
+import { MetricsManager } from './modules/metrics-manager.js';
+import { PDFExporter } from './modules/pdf-exporter.js';
+import { EventHandlers } from './modules/event-handlers.js';
+import { debugState, preloadLogo } from './modules/utils.js';
+
 const { jsPDF } = window.jspdf;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Elements ---
-            const screen1 = document.getElementById('screen1');
-            const screen2 = document.getElementById('screen2');
-            const setupForm = document.getElementById('setupForm');
-            const eventTitleInput = document.getElementById('eventTitle');
-            const eventDateInput = document.getElementById('eventDate');
-            const locationInput = document.getElementById('location');
-            const attendanceInput = document.getElementById('attendance');
-            const eventTypeInput = document.getElementById('eventType');
-            const venueTypeInput = document.getElementById('venueType');
-            const riskLevelInput = document.getElementById('riskLevel');
-            const descriptionInput = document.getElementById('description');
-            const generateBtn = document.getElementById('generateBtn');
-            
-            const reportScreenTitle = document.getElementById('reportScreenTitle');
-            const reportTitle = document.getElementById('reportTitle');
-            const aiStatus = document.getElementById('aiStatus');
-            const progressBar = document.getElementById('progressBar');
-            const goBackBtn = document.getElementById('goBackBtn');
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize all modules
+    const domElements = new DOMElements();
+    const stateManager = new StateManager();
+    const formValidator = new FormValidator(domElements);
+    const uiManager = new UIManager(domElements, stateManager);
+    const tableManager = new TableManager(domElements, stateManager);
+    const justificationManager = new JustificationManager(domElements, stateManager);
+    const metricsManager = new MetricsManager(domElements, stateManager, uiManager);
+    const pdfExporter = new PDFExporter(domElements, stateManager, metricsManager);
 
-            // Event Card Elements
-            const eventCard = document.getElementById('eventCard');
-            const cardEventTitle = document.getElementById('cardEventTitle');
-            const cardEventDate = document.getElementById('cardEventDate');
-            const cardLocation = document.getElementById('cardLocation');
-            const cardAttendance = document.getElementById('cardAttendance');
-            const cardEventType = document.getElementById('cardEventType');
-            const cardVenueType = document.getElementById('cardVenueType');
-            const cardRiskLevel = document.getElementById('cardRiskLevel');
-            const cardDescription = document.getElementById('cardDescription');
-            
-            const reportContainer = document.getElementById('reportContainer');
-            const summaryLoader = document.getElementById('summaryLoader');
-            const summaryLoaderText = document.getElementById('summaryLoaderText');
-            const summarySection = document.getElementById('summarySection');
-            const summaryContentWrapper = document.getElementById('summaryContentWrapper');
-            const summaryContent = document.getElementById('summaryContent');
-            const summaryActions = document.getElementById('summaryActions');
-            const acceptSummaryBtn = document.getElementById('acceptSummaryBtn');
-            const editSummaryBtn = document.getElementById('editSummaryBtn');
-            const saveSummaryBtn = document.getElementById('saveSummaryBtn');
-            const summaryJustificationIcon = document.getElementById('summaryJustificationIcon');
+    // Initialize event handlers with all dependencies
+    const eventHandlers = new EventHandlers(
+        domElements,
+        stateManager,
+        uiManager,
+        formValidator,
+        null, // riskGenerator - not needed in new structure
+        tableManager,
+        justificationManager,
+        metricsManager,
+        pdfExporter
+    );
 
-            const riskTableSection = document.getElementById('riskTableSection');
-            const tableLoader = document.getElementById('tableLoader');
-            const riskTableBody = document.getElementById('riskTableBody');
-            
-            const exportBtn = document.getElementById('exportBtn');
-            const acceptAllContainer = document.getElementById('acceptAllContainer');
-            const acceptAllBtn = document.getElementById('acceptAllBtn');
+    // Setup all event handlers
+    eventHandlers.initializeEventHandlers();
 
-            const dropZone = document.getElementById('dropZone');
-            const fileUpload = document.getElementById('fileUpload');
-            const fileList = document.getElementById('fileList');
+    // Make debug function available globally for testing
+    window.debugRiskAssessment = () => debugState(stateManager.getApplicationState(), stateManager.getRiskData());
 
-            const justificationPane = document.getElementById('justificationPane');
-            const closeJustificationPane = document.getElementById('closeJustificationPaneBtn');
-            const justificationFieldName = document.getElementById('justificationFieldName');
-            const justificationFieldValue = document.getElementById('justificationFieldValue');
-            const justificationReasoning = document.getElementById('justificationReasoning');
-            const justificationSources = document.getElementById('justificationSources');
-            const closeJustificationPaneBtn = document.getElementById('closeJustificationPaneBtn');
-
-            const rekonMetricsSection = document.getElementById('rekonMetricsSection');
-            const rekonRiskScore = document.getElementById('rekonRiskScore');
-            const rekonRiskLevel = document.getElementById('rekonRiskLevel');
-            const rekonRiskDescription = document.getElementById('rekonRiskDescription');
-            const rekonComplianceStatus = document.getElementById('rekonComplianceStatus');
-            const generateMoreBtn = document.getElementById('generateMoreBtn');
-            const addCustomRiskBtn = document.getElementById('addCustomRiskBtn');
-            const customRiskModal = document.getElementById('customRiskModal');
-            const closeCustomRiskModal = document.getElementById('closeCustomRiskModal');
-            const cancelCustomRisk = document.getElementById('cancelCustomRisk');
-            const customRiskForm = document.getElementById('customRiskForm');
-            const rekonComplianceDescription = document.getElementById('rekonComplianceDescription');
-            const rekonComplianceIcon = document.getElementById('rekonComplianceIcon');
-
-            // --- RekonContext Elements ---
-            const rekonContextSection = document.getElementById('rekonContextSection');
-            const rekonContextScore = document.getElementById('rekonContextScore');
-            const rekonContextSlash = document.getElementById('rekonContextSlash');
-            const rekonContextLevel = document.getElementById('rekonContextLevel');
-            const rekonContextDescription = document.getElementById('rekonContextDescription');
-            const rekonContextLoader = document.getElementById('rekonContextLoader');
-
-            // --- RekonMetrics Loader Elements ---
-            const rekonRiskLoader = document.getElementById('rekonRiskLoader');
-            const rekonComplianceLoader = document.getElementById('rekonComplianceLoader');
-
-            // --- Help Pane Elements ---
-            const helpIconBtn = document.getElementById('helpIconBtn');
-            const helpPane = document.getElementById('helpPane');
-            const closeHelpPaneBtn = document.getElementById('closeHelpPaneBtn');
-
-            // --- State ---
-            let riskData = [];
-            let currentProjectName = "";
-            let aiRekonLogoBase64 = null; // To store the base64 logo for PDF
-            let currentConversationId = null; // Store conversation ID for additional risks
-
-            // --- Simple State Management ---
-            let applicationState = {
-                currentStep: 'setup', // 'setup', 'generating', 'review', 'complete'
-                eventData: {},
-                summaryGenerated: false,
-                risksGenerated: false,
-                summaryJustification: null, // Store contextual summary justification here
-                lastModified: null
-            };
-
-            // State management utilities
-            const updateApplicationState = (updates) => {
-                Object.assign(applicationState, updates);
-                applicationState.lastModified = new Date().toISOString();
-                console.log('🔄 Application state updated:', applicationState);
-            };
-
-            // Debug function to inspect current state
-            const debugState = () => {
-                console.log('📊 Current Application State:', {
-                    applicationState,
-                    riskDataCount: riskData.length,
-                    riskDataSample: riskData.length > 0 ? riskData[0] : null
-                });
-            };
-
-            // Make debug function available globally for testing
-            window.debugRiskAssessment = debugState;
-
-            const typeOptions = {
-                'Music': ['Outdoor Festival', 'Indoor Concert', 'Nightclub Event', 'Arena Tour', 'Album Launch Party'],
-                'Community': ['Street Fair / Fete', 'Charity Fundraiser', 'Local Market', 'Public Rally / Protest', 'Cultural Festival'],
-                'State': ['Official Public Ceremony', 'VIP Visit / Dignitary Protection', 'Political Conference', 'National Day Parade', 'State Funeral'],
-                'Sport': ['Stadium Match (e.g., Football, Rugby)', 'Marathon / Running Event', 'Motorsport Race', 'Combat Sports Night (e.g., Boxing, MMA)', 'Golf Tournament'],
-                'Other': ['Corporate Conference', 'Private Party / Wedding', 'Film Premiere', 'Exhibition / Trade Show', 'Product Launch']
-            };
-
-            // --- Preload logo for PDF ---
-            const preloadLogo = () => {
-                return new Promise((resolve, reject) => {
-                    try {
-                        console.log('Attempting to load logo: assets/images/airekon.png');
-                        
-                        const img = new Image();
-                        img.crossOrigin = 'anonymous'; 
-                        
-                        img.onload = function() {
-                            console.log('Logo loaded successfully, converting to base64...');
-                            
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            
-                            try {
-                                // Changed to image/png for .png file
-                                const base64 = canvas.toDataURL('image/png'); 
-                                console.log('Logo converted to base64 (PNG), length:', base64.length);
-                                aiRekonLogoBase64 = base64;
-                                resolve(base64);
-                            } catch (e) {
-                                console.error('Error converting image to base64:', e);
-                                reject('Failed to convert image to base64');
-                            }
-                        };
-                        
-                        img.onerror = function() {
-                            console.error('Failed to load logo image from assets/images/airekon.png');
-                            reject('Failed to load logo image');
-                        };
-                        
-                        img.src = 'assets/images/airekon.png';
-                        
-                    } catch (error) {
-                        console.error('Error in preloadLogo function:', error);
-                        reject('Error in preloadLogo function');
-                    }
-                });
-            };
-
-            // Alternative: Embed logo as base64 directly (fallback if canvas method fails)
-            // You can convert your logo to base64 using an online tool and paste it here
-            const FALLBACK_LOGO_BASE64 = null; // Set this if needed
-            
-            // Attempt to preload the logo when the script loads, but don't block anything.
-            // The actual export will ensure it waits.
-            preloadLogo().catch(err => console.warn("Initial logo preload failed, will retry on export:", err));
-
-
-
-            // --- Form & File Upload Logic ---
-            const validateForm = () => {
-                const requiredFields = [
-                    eventTitleInput.value.trim(),
-                    eventDateInput.value,
-                    locationInput.value.trim(),
-                    attendanceInput.value,
-                    eventTypeInput.value
-                ];
-
-                // Only require venue type if event type is selected and venue options are available
-                if (eventTypeInput.value && venueTypeInput.options.length > 1) {
-                    requiredFields.push(venueTypeInput.value);
-                }
-
-                generateBtn.disabled = !requiredFields.every(field => field);
-            };
-
-            eventTitleInput.addEventListener('input', validateForm);
-            eventDateInput.addEventListener('input', validateForm);
-            locationInput.addEventListener('input', validateForm);
-            attendanceInput.addEventListener('input', validateForm);
-            eventTypeInput.addEventListener('input', validateForm);
-            venueTypeInput.addEventListener('input', validateForm);
-
-            // Event Type change handler to populate Venue Type dropdown
-            eventTypeInput.addEventListener('change', (e) => {
-                const selectedEventType = e.target.value;
-
-                venueTypeInput.innerHTML = '';
-
-                if (selectedEventType && typeOptions[selectedEventType]) {
-                    const defaultOption = document.createElement('option');
-                    defaultOption.textContent = 'Select Venue Type';
-                    defaultOption.value = '';
-                    venueTypeInput.appendChild(defaultOption);
-
-                    typeOptions[selectedEventType].forEach(type => {
-                        const option = document.createElement('option');
-                        option.textContent = type;
-                        option.value = type;
-                        venueTypeInput.appendChild(option);
-                    });
-                } else {
-                    const defaultOption = document.createElement('option');
-                    defaultOption.textContent = 'Select Event Type first';
-                    defaultOption.value = '';
-                    venueTypeInput.appendChild(defaultOption);
-                }
-
-                // Re-validate form after venue type options change
-                validateForm();
-            });
-
-            const handleFiles = (files) => {
-                fileList.innerHTML = '';
-                for (const file of files) {
-                    const fileDiv = document.createElement('div');
-                    fileDiv.className = 'flex items-center justify-between bg-zinc-100 p-2 rounded-md text-sm';
-                    fileDiv.innerHTML = `
-                        <span>${file.name}</span>
-                        <button class="text-red-500 hover:text-red-700">&times;</button>
-                    `;
-                    fileDiv.querySelector('button').onclick = () => fileDiv.remove();
-                    fileList.appendChild(fileDiv);
-                }
-            };
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
-            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
-            dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-50'); handleFiles(e.dataTransfer.files); });
-            fileUpload.addEventListener('change', (e) => handleFiles(e.target.files));
-
-            const resetScreen2 = () => {
-                riskData = [];
-
-                // Reset application state
-                updateApplicationState({
-                    currentStep: 'setup',
-                    eventData: {},
-                    summaryGenerated: false,
-                    risksGenerated: false,
-                    summaryJustification: null
-                });
-
-                summaryContent.textContent = '';
-                summarySection.classList.add('hidden');
-                summaryActions.classList.add('hidden');
-                acceptSummaryBtn.innerHTML = '✔ Accept';
-                acceptSummaryBtn.disabled = false;
-                editSummaryBtn.classList.remove('hidden');
-                saveSummaryBtn.classList.add('hidden');
-                summaryContent.contentEditable = false;
-                summaryContent.classList.remove('table-cell-editing');
-
-                riskTableBody.innerHTML = '';
-                riskTableSection.classList.add('hidden');
-                rekonContextSection.classList.add('hidden');
-
-                rekonMetricsSection.classList.add('hidden');
-
-                progressBar.style.width = '0%';
-                aiStatus.textContent = 'Initializing...';
-                exportBtn.disabled = true;
-                acceptAllContainer.classList.add('hidden');
-                acceptAllBtn.disabled = false;
-            };
-
-            goBackBtn.addEventListener('click', () => {
-                screen2.classList.add('hidden');
-                screen1.classList.remove('hidden');
-                resetScreen2();
-            });
-
-            // --- Simulation Logic ---
-            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-            const proceedToRiskGeneration = async () => {
-                riskTableSection.classList.remove('hidden');
-                riskTableSection.classList.add('fade-in');
-                tableLoader.classList.remove('hidden');
-                aiStatus.textContent = `AI is analyzing risks...`;
-
-                try {
-                    progressBar.style.width = '40%';
-
-                    // Prepare event data for AI risk generation
-                    const eventData = {
-                        eventTitle: eventTitleInput.value.trim(),
-                        eventDate: eventDateInput.value,
-                        location: locationInput.value.trim(),
-                        attendance: attendanceInput.value,
-                        eventType: eventTypeInput.value,
-                        venueType: venueTypeInput.value,
-                        description: descriptionInput.value.trim()
-                    };
-
-                    aiStatus.textContent = "AI is analyzing event for critical risks...";
-
-                    try {
-                        // Start a conversation with the AI for importance-based risk generation
-                        const conversationId = await aiService.startRiskConversation(eventData);
-                        currentConversationId = conversationId; // Store for additional risks
-                        console.log(`🤖 Started risk conversation: ${conversationId}`);
-
-                        // Generate risks progressively in order of importance
-                        const totalRisks = 6;
-
-                        for (let i = 1; i <= totalRisks; i++) {
-                            const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
-                            progressBar.style.width = `${progress}%`;
-                            aiStatus.textContent = `AI is identifying risks...`;
-
-                            // Update table loader text to show current risk being generated
-                            const tableLoaderText = document.querySelector('#tableLoader p');
-                            if (tableLoaderText) {
-                                tableLoaderText.textContent = `AI is identifying risks...`;
-                            }
-
-                            try {
-                                // Generate next risk in conversation for diversity
-                                const risk = await aiService.generateNextRisk(conversationId, i);
-
-                                // Add the risk to the table immediately
-                                addRiskRow(risk);
-
-                                // Add to risk data with justification fields
-                                const riskWithJustifications = {
-                                    ...risk,
-                                    justifications: {
-                                        risk: null,
-                                        category: null,
-                                        impact: null,
-                                        likelihood: null,
-                                        mitigation: null,
-                                        overall: null
-                                    }
-                                };
-                                riskData.push(riskWithJustifications);
-
-                                // Pre-generate justifications in background (don't wait)
-                                // preGenerateJustifications(riskWithJustifications, eventData);
-
-                                // Brief pause to let user see the new row
-                                await sleep(400);
-
-                            } catch (error) {
-                                console.error(`Error generating risk ${i}:`, error);
-                                // Continue with next risk even if one fails
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error starting risk conversation:', error);
-                        // Fallback to legacy method if conversation fails
-                        aiStatus.textContent = "Falling back to standard risk generation...";
-
-                        const totalRisks = 6;
-                        for (let i = 1; i <= totalRisks; i++) {
-                            try {
-                                const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
-                                addRiskRow(risk);
-                                riskData.push({
-                                    ...risk,
-                                    justifications: {
-                                        risk: null,
-                                        category: null,
-                                        impact: null,
-                                        likelihood: null,
-                                        mitigation: null,
-                                        overall: null
-                                    }
-                                });
-                                await sleep(400);
-                            } catch (riskError) {
-                                console.error(`Error generating fallback risk ${i}:`, riskError);
-                            }
-                        }
-                    }
-
-                    tableLoader.classList.add('hidden');
-
-                    // Update state to indicate risks are generated
-                    updateApplicationState({
-                        risksGenerated: true,
-                        currentStep: 'review'
-                    });
-
-                    progressBar.style.width = '90%';
-                    aiStatus.textContent = "AI risk analysis complete. Please review and accept risks.";
-                    exportBtn.disabled = true;
-
-                    if (riskData.length > 0) {
-                        acceptAllContainer.classList.remove('hidden');
-                        acceptAllContainer.classList.add('fade-in');
-                    }
-
-                } catch (error) {
-                    console.error('Error generating AI risks:', error);
-                    tableLoader.classList.add('hidden');
-                    aiStatus.textContent = "Error generating risks. Please try again.";
-                    alert('Failed to generate AI risk assessment: ' + error.message);
-                }
-            };
-
-            const populateEventCard = () => {
+    // Preload logo for PDF export
+    preloadLogo()
+        .then(logoBase64 => {
+            stateManager.setLogoBase64(logoBase64);
+            console.log('✅ Logo preloaded successfully');
+        })
+        .catch(err => {
+            console.warn("Initial logo preload failed, will retry on export:", err);
+        });
+});
                 // Populate event card with form data
                 cardEventTitle.textContent = eventTitleInput.value.trim() || 'N/A';
                 cardEventDate.textContent = eventDateInput.value ?

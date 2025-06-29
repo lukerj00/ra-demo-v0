@@ -92,9 +92,19 @@ export class DOMElements {
         this.rekonContextDescription = document.getElementById('rekonContextDescription');
         this.rekonContextLoader = document.getElementById('rekonContextLoader');
 
-        // --- RekonMetrics Loader Elements ---
+        // --- RekonMetrics Elements ---
+        this.rekonMetricsSection = document.getElementById('rekonMetricsSection');
+        this.rekonRiskScore = document.getElementById('rekonRiskScore');
+        this.rekonRiskLevel = document.getElementById('rekonRiskLevel');
+        this.rekonRiskDescription = document.getElementById('rekonRiskDescription');
+        this.rekonComplianceStatus = document.getElementById('rekonComplianceStatus');
         this.rekonRiskLoader = document.getElementById('rekonRiskLoader');
         this.rekonComplianceLoader = document.getElementById('rekonComplianceLoader');
+
+        // --- File Upload Elements ---
+        this.dropZone = document.getElementById('dropZone');
+        this.fileUpload = document.getElementById('fileUpload');
+        this.fileList = document.getElementById('fileList');
 
         // --- Help Pane Elements ---
         this.helpIconBtn = document.getElementById('helpIconBtn');
