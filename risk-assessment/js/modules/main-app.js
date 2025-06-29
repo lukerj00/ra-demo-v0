@@ -116,11 +116,22 @@ export class RiskAssessmentApp {
         this.modules.domElements.progressBar.style.width = '0%';
         this.modules.domElements.aiStatus.textContent = '';
 
+        // Set up venue type functionality
+        this.modules.formValidator.setupEventTypeChangeHandler((eventType) => {
+            const venueTypes = this.modules.stateManager.getVenueTypesForEventType(eventType);
+            this.modules.formValidator.updateVenueTypeOptions(eventType, venueTypes);
+        });
+
         // Initialize venue types for default event type
-        const defaultEventType = this.modules.domElements.eventTypeInput.value;
+        const defaultEventType = this.modules.domElements.eventTypeInput?.value;
         if (defaultEventType) {
             const venueTypes = this.modules.stateManager.getVenueTypesForEventType(defaultEventType);
             this.modules.formValidator.updateVenueTypeOptions(defaultEventType, venueTypes);
+        }
+
+        // Enable the generate button
+        if (this.modules.domElements.generateBtn) {
+            this.modules.domElements.generateBtn.disabled = false;
         }
     }
 

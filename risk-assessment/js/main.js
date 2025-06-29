@@ -1,39 +1,30 @@
 /**
- * aiRekon Risk Assessment Tool - Modular Main Entry Point (Test Version)
+ * aiRekon Risk Assessment Tool - Modular Main Entry Point
+ *
+ * This file loads the modular application architecture.
+ * The original monolithic main.js has been refactored into focused modules:
+ *
+ * - dom-elements.js: DOM element references
+ * - state-management.js: Application state management
+ * - form-validation.js: Form validation and input handling
+ * - risk-generation.js: AI-powered risk generation
+ * - table-management.js: Risk table display and interactions
+ * - pdf-export.js: PDF generation functionality
+ * - justification-pane.js: Justification panel logic
+ * - help-pane.js: Help panel functionality
+ * - event-handlers.js: Event listeners and UI interactions
+ * - main-app.js: Application coordination and initialization
  */
 
-console.log('🎯 aiRekon Risk Assessment Tool - Testing Modular Architecture');
+// Import the main application module
+import RiskAssessmentApp from './modules/main-app.js';
 
-// Test basic module loading
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        console.log('🚀 Starting module tests...');
+// The application will be automatically initialized when the DOM is ready
+// via the DOMContentLoaded event listener in main-app.js
 
-        // Test DOM Elements
-        const { DOMElements } = await import('./modules/dom-elements.js');
-        const domElements = new DOMElements();
-        console.log('✅ DOM Elements module loaded successfully');
+console.log('🎯 aiRekon Risk Assessment Tool - Modular Architecture Loaded');
+console.log('📦 Modules: DOM Elements, State Management, Form Validation, Risk Generation, Table Management, PDF Export, Justification Pane, Help Pane, Event Handlers');
+console.log('🔄 Refactored from monolithic 1931-line file to focused, maintainable modules');
 
-        // Test State Management
-        const { StateManager } = await import('./modules/state-management.js');
-        const stateManager = new StateManager();
-        console.log('✅ State Management module loaded successfully');
-
-        // Test Form Validation
-        const { FormValidator } = await import('./modules/form-validation.js');
-        const formValidator = new FormValidator(domElements);
-        console.log('✅ Form Validation module loaded successfully');
-
-        console.log('🎉 Basic modules loaded successfully! The modular architecture is working.');
-
-        // Enable the generate button to show the form is ready
-        if (domElements.generateBtn) {
-            domElements.generateBtn.disabled = false;
-            domElements.generateBtn.textContent = 'Modules Loaded Successfully';
-        }
-
-    } catch (error) {
-        console.error('❌ Module loading failed:', error);
-        alert('Module loading failed: ' + error.message);
-    }
-});
+// Export for potential external usage
+export default RiskAssessmentApp;

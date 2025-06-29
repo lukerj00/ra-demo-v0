@@ -30,14 +30,11 @@ export class StateManager {
     initializeVenueTypes() {
         // --- Venue Type Mapping ---
         this.venueTypesByEventType = {
-            'Music': ['Concert Hall', 'Stadium', 'Arena', 'Outdoor Festival Ground', 'Club / Bar'],
-            'Conference': ['Convention Center', 'Hotel Conference Room', 'University Campus', 'Corporate Office', 'Exhibition Hall'],
-            'Festival': ['Public Park', 'Outdoor Festival Ground', 'Beach / Waterfront', 'Historic Site', 'Fairground'],
-            'Religious': ['Church / Cathedral', 'Mosque', 'Temple / Synagogue', 'Outdoor Religious Site', 'Community Center'],
-            'Cultural': ['Museum', 'Art Gallery', 'Theater', 'Historic Site', 'Cultural Center'],
-            'State': ['Official Public Ceremony', 'VIP Visit / Dignitary Protection', 'Political Conference', 'National Day Parade', 'State Funeral'],
-            'Sport': ['Stadium Match (e.g., Football, Rugby)', 'Marathon / Running Event', 'Motorsport Race', 'Combat Sports Night (e.g., Boxing, MMA)', 'Golf Tournament'],
-            'Other': ['Corporate Conference', 'Private Party / Wedding', 'Film Premiere', 'Exhibition / Trade Show', 'Product Launch']
+            'Music': ['Concert Hall', 'Stadium', 'Arena', 'Outdoor Festival Ground', 'Club / Bar', 'Theater', 'Amphitheater'],
+            'Community': ['Community Center', 'Public Park', 'Town Hall', 'Library', 'School', 'Church Hall', 'Recreation Center'],
+            'State': ['Official Public Ceremony', 'VIP Visit / Dignitary Protection', 'Political Conference', 'National Day Parade', 'State Funeral', 'Government Building'],
+            'Sport': ['Stadium Match (e.g., Football, Rugby)', 'Marathon / Running Event', 'Motorsport Race', 'Combat Sports Night (e.g., Boxing, MMA)', 'Golf Tournament', 'Sports Complex'],
+            'Other': ['Corporate Conference', 'Private Party / Wedding', 'Film Premiere', 'Exhibition / Trade Show', 'Product Launch', 'Convention Center', 'Hotel Conference Room']
         };
     }
 
