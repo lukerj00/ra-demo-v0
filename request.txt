@@ -1,0 +1,20 @@
+"
+import requests
+import json
+from datetime import datetime, timedelta
+
+data = {
+    'eventTitle': 'Test Event for AI Debug',
+    'eventDate': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
+    'location': 'Test Location',
+    'attendance': 1000,
+    'eventType': 'Music',
+    'venueType': 'Indoor Concert',
+    'description': 'Test event for debugging AI service'
+}
+
+response = requests.post('http://localhost:6001/api/start-assessment', json=data)
+result = response.json()
+print(f'Session ID: {result[\"session_id\"]}')
+print(f'URL: http://localhost:6001{result[\"redirect_url\"]}')
+"
