@@ -5,7 +5,8 @@
 
 class AIService {
     constructor() {
-        this.backendURL = 'http://localhost:5001';
+        // Use relative URL since frontend and backend are on the same server
+        this.backendURL = '';
         this.maxRetries = 3;
         this.retryDelay = 1000; // 1 second
         this.initialized = false;

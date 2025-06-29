@@ -117,6 +117,7 @@ export class EventHandlers {
             }
 
             const eventData = this.formValidator.getFormData();
+            console.log('🔍 Form data collected:', eventData);
             await this.startGeneration(eventData);
         });
     }
@@ -165,6 +166,17 @@ export class EventHandlers {
      */
     async generateSummary(eventData) {
         try {
+            console.log('🔍 Event data being sent to AI service:', eventData);
+
+            // Check if AI service is available
+            if (!window.aiService) {
+                throw new Error('AI service not available on window object');
+            }
+
+            if (!window.aiService.isConfigured()) {
+                throw new Error('AI service not configured');
+            }
+
             this.ui.updateStatus("AI is generating contextual summary...");
             this.ui.updateProgress(10);
 
@@ -190,7 +202,7 @@ export class EventHandlers {
             // Update state and show actions
             this.state.updateApplicationState({ summaryGenerated: true });
             this.ui.showSummaryActions();
-            
+
             // Display RekonContext
             await this.metricsManager.displayRekonContext();
             this.ui.updateProgress(30);

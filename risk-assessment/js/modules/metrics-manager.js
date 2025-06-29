@@ -115,7 +115,7 @@ export class MetricsManager {
 
         // Venue type adjustments
         const highRiskVenues = ['Stadium', 'Arena', 'Outdoor Festival Ground', 'Public Rally / Protest'];
-        if (highRiskVenues.some(venue => venueType.includes(venue))) {
+        if (venueType && highRiskVenues.some(venue => venueType.includes(venue))) {
             score += 1;
         }
 

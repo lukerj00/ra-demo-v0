@@ -433,6 +433,138 @@
     <script src="js/config.js"></script>
     <script src="js/ai-service.js"></script>
     <script src="js/api-config.js"></script>
+
+    <!-- Non-modular fallback for form functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 Setting up non-modular form functionality...');
+
+            // Form elements
+            const eventTitleInput = document.getElementById('eventTitle');
+            const eventDateInput = document.getElementById('eventDate');
+            const locationInput = document.getElementById('location');
+            const attendanceInput = document.getElementById('attendance');
+            const eventTypeInput = document.getElementById('eventType');
+            const venueTypeInput = document.getElementById('venueType');
+            const riskLevelInput = document.getElementById('riskLevel');
+            const descriptionInput = document.getElementById('description');
+            const generateBtn = document.getElementById('generateBtn');
+
+            // Venue type options
+            const venueTypeOptions = {
+                'Music': ['Outdoor Festival', 'Indoor Concert', 'Nightclub Event', 'Arena Tour', 'Album Launch Party'],
+                'Community': ['Street Fair / Fete', 'Charity Fundraiser', 'Local Market', 'Public Rally / Protest', 'Cultural Festival'],
+                'State': ['Official Public Ceremony', 'VIP Visit / Dignitary Protection', 'Political Conference', 'National Day Parade', 'State Funeral'],
+                'Sport': ['Stadium Match (e.g., Football, Rugby)', 'Marathon / Running Event', 'Motorsport Race', 'Combat Sports Night (e.g., Boxing, MMA)', 'Golf Tournament'],
+                'Other': ['Corporate Conference', 'Private Party / Wedding', 'Film Premiere', 'Exhibition / Trade Show', 'Product Launch']
+            };
+
+            // Form validation
+            const validateForm = () => {
+                const requiredFields = [
+                    eventTitleInput.value.trim(),
+                    eventDateInput.value,
+                    locationInput.value.trim(),
+                    attendanceInput.value,
+                    eventTypeInput.value
+                ];
+
+                if (eventTypeInput.value && venueTypeInput.options.length > 1) {
+                    requiredFields.push(venueTypeInput.value);
+                }
+
+                generateBtn.disabled = !requiredFields.every(field => field);
+            };
+
+            // Event type change handler
+            if (eventTypeInput && venueTypeInput) {
+                eventTypeInput.addEventListener('change', (e) => {
+                    const selectedEventType = e.target.value;
+                    venueTypeInput.innerHTML = '';
+
+                    if (selectedEventType && venueTypeOptions[selectedEventType]) {
+                        const defaultOption = document.createElement('option');
+                        defaultOption.textContent = 'Select Venue Type';
+                        defaultOption.value = '';
+                        venueTypeInput.appendChild(defaultOption);
+
+                        venueTypeOptions[selectedEventType].forEach(type => {
+                            const option = document.createElement('option');
+                            option.textContent = type;
+                            option.value = type;
+                            venueTypeInput.appendChild(option);
+                        });
+                    } else {
+                        const defaultOption = document.createElement('option');
+                        defaultOption.textContent = 'Select Event Type first';
+                        defaultOption.value = '';
+                        venueTypeInput.appendChild(defaultOption);
+                    }
+
+                    validateForm();
+                });
+            }
+
+            // Add validation listeners
+            [eventTitleInput, eventDateInput, locationInput, attendanceInput, eventTypeInput, venueTypeInput].forEach(input => {
+                if (input) {
+                    input.addEventListener('input', validateForm);
+                    input.addEventListener('change', validateForm);
+                }
+            });
+
+            // Form submission
+            if (generateBtn) {
+                generateBtn.addEventListener('click', async () => {
+                    console.log('🚀 Form submitted - collecting data...');
+
+                    const eventData = {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        location: locationInput.value.trim(),
+                        attendance: attendanceInput.value,
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        riskLevel: riskLevelInput.value,
+                        description: descriptionInput.value.trim()
+                    };
+
+                    console.log('🔍 Event data collected:', eventData);
+
+                    // Check if AI service is available
+                    if (!window.aiService) {
+                        alert('❌ AI service not available. Please refresh the page and try again.');
+                        return;
+                    }
+
+                    if (!window.aiService.isConfigured()) {
+                        alert('❌ AI service not configured. Please check your API key.');
+                        return;
+                    }
+
+                    try {
+                        generateBtn.disabled = true;
+                        generateBtn.textContent = 'Generating...';
+
+                        // Test AI service with overview generation
+                        const overview = await window.aiService.generateOverviewParagraph(eventData);
+                        console.log('✅ AI service test successful:', overview);
+                        alert('✅ AI service is working! Overview generated successfully.');
+
+                    } catch (error) {
+                        console.error('❌ AI service test failed:', error);
+                        alert('❌ AI service failed: ' + error.message);
+                    } finally {
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate Risk Assessment';
+                    }
+                });
+            }
+
+            console.log('✅ Non-modular form functionality set up');
+        });
+    </script>
+
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

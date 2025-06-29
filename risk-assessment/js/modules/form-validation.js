@@ -94,8 +94,8 @@ export class FormValidator {
      */
     getFormData() {
         const inputs = this.dom.getFormInputs();
-        
-        return {
+
+        const formData = {
             eventTitle: inputs.eventTitle.value.trim(),
             eventDate: inputs.eventDate.value,
             location: inputs.location.value.trim(),
@@ -105,6 +105,11 @@ export class FormValidator {
             riskLevel: inputs.riskLevel.value,
             description: inputs.description.value.trim()
         };
+
+        console.log('🔍 Raw form data collected:', formData);
+        console.log('🔍 Form inputs object:', inputs);
+
+        return formData;
     }
 
     /**

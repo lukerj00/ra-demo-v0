@@ -23,6 +23,18 @@ export class DOMElements {
         this.venueTypeInput = document.getElementById('venueType');
         this.riskLevelInput = document.getElementById('riskLevel');
         this.descriptionInput = document.getElementById('description');
+
+        // Debug: Check if form inputs are found
+        console.log('🔍 Form inputs found:', {
+            eventTitle: !!this.eventTitleInput,
+            eventDate: !!this.eventDateInput,
+            location: !!this.locationInput,
+            attendance: !!this.attendanceInput,
+            eventType: !!this.eventTypeInput,
+            venueType: !!this.venueTypeInput,
+            riskLevel: !!this.riskLevelInput,
+            description: !!this.descriptionInput
+        });
         this.generateBtn = document.getElementById('generateBtn');
         
         // --- Report Screen Elements ---
