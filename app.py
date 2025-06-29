@@ -6,6 +6,8 @@ Handles OpenAI API requests securely on the server side
 import os
 import json
 import logging
+import argparse
+import socket
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -1065,6 +1067,71 @@ def parse_justification_response(response):
         'sources': sources
     }
 
+def get_local_ip():
+    """Get the local IP address of the machine"""
+    try:
+        # Connect to a remote address to determine local IP
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+
+def display_server_info(host, port):
+    """Display server information with local and remote URLs"""
+    local_ip = get_local_ip()
+
+    print("\n" + "="*60)
+    print("🚀 AIREKON Risk Assessment API Server Started")
+    print("="*60)
+    print(f"📍 Local Development Server:")
+    print(f"   http://localhost:{port}")
+    print(f"   http://127.0.0.1:{port}")
+    print()
+    print(f"🌐 Network Access (Remote/Mobile):")
+    print(f"   http://{local_ip}:{port}")
+    print()
+    print(f"📱 Frontend Access:")
+    print(f"   Local:  http://localhost:{port}/")
+    print(f"   Remote: http://{local_ip}:{port}/")
+    print()
+    print(f"🔧 API Health Check:")
+    print(f"   http://localhost:{port}/health")
+    print(f"   http://{local_ip}:{port}/health")
+    print()
+    print("💡 Tips:")
+    print("   • Use localhost URLs for local development")
+    print("   • Use network IP for testing from other devices")
+    print("   • Make sure firewall allows connections on this port")
+    print("="*60)
+    print("Press Ctrl+C to stop the server")
+    print("="*60 + "\n")
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='AIREKON Risk Assessment API Server')
+    parser.add_argument('--port', '-p', type=int, default=5001,
+                       help='Port to run the server on (default: 5001)')
+    parser.add_argument('--host', default='0.0.0.0',
+                       help='Host to bind to (default: 0.0.0.0)')
+    parser.add_argument('--debug', action='store_true', default=True,
+                       help='Run in debug mode (default: True)')
+
+    args = parser.parse_args()
+
+    # Override with environment variable if set
+    port = int(os.environ.get('PORT', args.port))
+    host = args.host
+
+    # Display server information only in main process (not in Flask reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        display_server_info(host, port)
+
+    # Start the Flask application
+    try:
+        app.run(host=host, port=port, debug=args.debug)
+    except KeyboardInterrupt:
+        print("\n\n👋 Server stopped by user")
+    except Exception as e:
+        print(f"\n❌ Error starting server: {e}")
+        print("💡 Try using a different port with --port=<port_number>")
