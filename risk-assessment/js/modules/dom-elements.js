@@ -13,6 +13,11 @@ export class DOMElements {
         this.screen1 = document.getElementById('screen1');
         this.screen2 = document.getElementById('screen2');
         this.setupForm = document.getElementById('setupForm');
+
+        // Check for critical elements
+        if (!this.screen1 || !this.screen2 || !this.setupForm) {
+            throw new Error('Critical DOM elements missing: screen1, screen2, or setupForm');
+        }
         
         // --- Form Input Elements ---
         this.eventTitleInput = document.getElementById('eventTitle');
@@ -76,9 +81,15 @@ export class DOMElements {
         // --- Custom Risk Modal Elements ---
         this.customRiskModal = document.getElementById('customRiskModal');
         this.closeCustomRiskModal = document.getElementById('closeCustomRiskModal');
-        this.submitCustomRisk = document.getElementById('submitCustomRisk');
         this.cancelCustomRisk = document.getElementById('cancelCustomRisk');
         this.customRiskForm = document.getElementById('customRiskForm');
+
+        // Custom risk form fields
+        this.customRiskDescription = document.getElementById('customRiskDescription');
+        this.customRiskCategory = document.getElementById('customRiskCategory');
+        this.customRiskImpact = document.getElementById('customRiskImpact');
+        this.customRiskLikelihood = document.getElementById('customRiskLikelihood');
+        this.customRiskMitigation = document.getElementById('customRiskMitigation');
         
         // --- RekonCompliance Elements ---
         this.rekonComplianceDescription = document.getElementById('rekonComplianceDescription');

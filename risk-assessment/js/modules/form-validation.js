@@ -57,14 +57,11 @@ export class FormValidator {
      * @returns {boolean} True if custom risk form is valid
      */
     validateCustomRiskForm() {
-        const form = this.dom.customRiskForm;
-        const formData = new FormData(form);
-        
-        const risk = formData.get('risk')?.trim();
-        const category = formData.get('category');
-        const impact = formData.get('impact');
-        const likelihood = formData.get('likelihood');
-        const mitigation = formData.get('mitigation')?.trim();
+        const risk = this.dom.customRiskDescription?.value?.trim();
+        const category = this.dom.customRiskCategory?.value;
+        const impact = this.dom.customRiskImpact?.value;
+        const likelihood = this.dom.customRiskLikelihood?.value;
+        const mitigation = this.dom.customRiskMitigation?.value?.trim();
 
         if (!risk || !category || !impact || !likelihood || !mitigation) {
             this.showValidationError('Please fill in all fields for the custom risk.');
@@ -74,12 +71,12 @@ export class FormValidator {
         // Validate impact and likelihood are valid numbers
         const impactNum = parseInt(impact);
         const likelihoodNum = parseInt(likelihood);
-        
+
         if (isNaN(impactNum) || impactNum < 1 || impactNum > 5) {
             this.showValidationError('Impact must be a number between 1 and 5.');
             return false;
         }
-        
+
         if (isNaN(likelihoodNum) || likelihoodNum < 1 || likelihoodNum > 5) {
             this.showValidationError('Likelihood must be a number between 1 and 5.');
             return false;
@@ -112,15 +109,12 @@ export class FormValidator {
      * @returns {Object} Custom risk data object
      */
     getCustomRiskData() {
-        const form = this.dom.customRiskForm;
-        const formData = new FormData(form);
-        
         return {
-            risk: formData.get('risk')?.trim(),
-            category: formData.get('category'),
-            impact: parseInt(formData.get('impact')),
-            likelihood: parseInt(formData.get('likelihood')),
-            mitigation: formData.get('mitigation')?.trim()
+            risk: this.dom.customRiskDescription?.value?.trim(),
+            category: this.dom.customRiskCategory?.value,
+            impact: parseInt(this.dom.customRiskImpact?.value),
+            likelihood: parseInt(this.dom.customRiskLikelihood?.value),
+            mitigation: this.dom.customRiskMitigation?.value?.trim()
         };
     }
 
@@ -241,8 +235,10 @@ export class FormValidator {
      * @param {Function} callback - Callback function to handle event type changes
      */
     setupEventTypeChangeHandler(callback) {
-        this.dom.eventTypeInput.addEventListener('change', (e) => {
-            callback(e.target.value);
-        });
+        if (this.dom.eventTypeInput) {
+            this.dom.eventTypeInput.addEventListener('change', (e) => {
+                callback(e.target.value);
+            });
+        }
     }
 }
