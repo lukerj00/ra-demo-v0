@@ -1,5 +1,7 @@
 const { jsPDF } = window.jspdf;
 
+console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
+
         document.addEventListener('DOMContentLoaded', () => {
             // --- Check for API mode (session parameter) ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1940,28 +1942,43 @@ const { jsPDF } = window.jspdf;
 
             // Complete Assessment Event Handler (API Mode)
             completeBtn.addEventListener('click', async () => {
+                console.log('🔘 Complete button clicked');
+                console.log('📊 API Mode:', isApiMode);
+                console.log('🆔 Session ID:', sessionId);
+
                 if (!isApiMode || !sessionId) {
-                    console.error('Complete button clicked but not in API mode');
+                    console.error('❌ Complete button clicked but not in API mode or no session ID');
+                    alert('Error: Not in API mode or missing session ID');
                     return;
                 }
 
                 // Disable button and show loading state
                 completeBtn.disabled = true;
                 completeBtn.textContent = 'Completing Assessment...';
+                console.log('⏳ Starting completion process...');
 
                 try {
                     const success = await completeAssessment();
+                    console.log('✅ Completion result:', success);
 
                     if (success) {
-                        completeBtn.textContent = 'Assessment Completed!';
+                        console.log('🎉 SUCCESS BLOCK REACHED - Starting redirect process');
+                        completeBtn.textContent = 'Completed! Returning to Main App...';
                         completeBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                        completeBtn.classList.add('bg-green-800');
+                        completeBtn.classList.add('bg-blue-600');
 
-                        // Show success message
-                        alert('Assessment completed successfully! You can now close this window or wait to be redirected back to the main application.');
+                        // SIMPLE DIRECT REDIRECT - Test this first
+                        console.log('🔄 Starting direct redirect test...');
+                        completeBtn.textContent = 'Redirecting to Main App...';
 
-                        // TODO: In future, redirect back to main app with return URL
-                        // For now, just show completion status
+                        // Direct redirect to main app (you can customize this URL)
+                        const directReturnUrl = 'http://localhost:9999/';
+                        console.log('🚀 Redirecting in 2 seconds to:', directReturnUrl);
+
+                        setTimeout(() => {
+                            console.log('🚀 Redirecting NOW!');
+                            window.location.href = directReturnUrl;
+                        }, 2000);
 
                     } else {
                         // Reset button on failure
@@ -2104,4 +2121,167 @@ const { jsPDF } = window.jspdf;
                 
                 return Math.min(score, 7); // Cap score at 7
             };
+
+            // --- Main App Integration Functions ---
+
+            // Expose application state for main app integration
+            window.getAssessmentData = function() {
+                return {
+                    eventData: {
+                        eventTitle: eventTitleInput.value.trim(),
+                        eventDate: eventDateInput.value,
+                        location: locationInput.value.trim(),
+                        attendance: attendanceInput.value,
+                        eventType: eventTypeInput.value,
+                        venueType: venueTypeInput.value,
+                        description: descriptionInput.value.trim()
+                    },
+                    risks: getAllRisksData(),
+                    summary: getSummaryData(),
+                    rekonMetrics: getRekonMetrics(),
+                    metadata: {
+                        completed_at: new Date().toISOString(),
+                        total_risks: document.querySelectorAll('#riskTableBody tr').length,
+                        source: 'AI Risk Assessment Tool'
+                    }
+                };
+            };
+
+            // Get all risks data
+            function getAllRisksData() {
+                const risks = [];
+                const rows = document.querySelectorAll('#riskTableBody tr');
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        risks.push({
+                            risk: cells[0].textContent.trim(),
+                            impact: parseInt(cells[1].textContent) || 3,
+                            likelihood: parseInt(cells[2].textContent) || 3,
+                            mitigation: cells[3].textContent.trim()
+                        });
+                    }
+                });
+
+                return risks;
+            }
+
+            // Get summary data
+            function getSummaryData() {
+                const summaryElement = document.getElementById('summaryContent');
+                if (summaryElement) {
+                    const text = summaryElement.textContent.trim();
+                    // Split into paragraphs if possible
+                    const paragraphs = text.split('\n\n');
+                    return {
+                        paragraph1: paragraphs[0] || '',
+                        paragraph2: paragraphs[1] || '',
+                        full_text: text
+                    };
+                }
+                return {};
+            }
+
+            // Get REKON metrics
+            function getRekonMetrics() {
+                const metrics = {};
+
+                // REKON Risk
+                const riskScore = document.getElementById('rekonRiskScore');
+                const riskLevel = document.getElementById('rekonRiskLevel');
+                const riskDesc = document.getElementById('rekonRiskDescription');
+
+                if (riskScore && riskLevel) {
+                    metrics.rekon_risk = {
+                        score: riskScore.textContent.trim(),
+                        level: riskLevel.textContent.trim(),
+                        description: riskDesc ? riskDesc.textContent.trim() : ''
+                    };
+                }
+
+                // REKON Context
+                const contextScore = document.getElementById('rekonContextScore');
+                const contextLevel = document.getElementById('rekonContextLevel');
+                const contextDesc = document.getElementById('rekonContextDescription');
+
+                if (contextScore && contextLevel) {
+                    metrics.rekon_context = {
+                        score: contextScore.textContent.trim(),
+                        level: contextLevel.textContent.trim(),
+                        description: contextDesc ? contextDesc.textContent.trim() : ''
+                    };
+                }
+
+                return metrics;
+            }
+
+            // Calculate overall risk level
+            window.calculateOverallRiskLevel = function() {
+                const risks = getAllRisksData();
+                if (risks.length === 0) return 'Medium';
+
+                const avgRisk = risks.reduce((sum, risk) => {
+                    const riskScore = (risk.impact || 3) * (risk.likelihood || 3);
+                    return sum + riskScore;
+                }, 0) / risks.length;
+
+                if (avgRisk >= 12) return 'High';
+                else if (avgRisk >= 6) return 'Medium';
+                else return 'Low';
+            };
+
+            // Auto-populate event data if provided by main app
+            window.populateFromMainApp = function(eventData) {
+                if (!eventData) return;
+
+                console.log('📝 Populating from main app:', eventData);
+
+                if (eventData.eventTitle) eventTitleInput.value = eventData.eventTitle;
+                if (eventData.eventDate) eventDateInput.value = eventData.eventDate;
+                if (eventData.location) locationInput.value = eventData.location;
+                if (eventData.attendance) attendanceInput.value = eventData.attendance;
+                if (eventData.eventType) eventTypeInput.value = eventData.eventType;
+                if (eventData.venueType) venueTypeInput.value = eventData.venueType;
+                if (eventData.description) descriptionInput.value = eventData.description;
+
+                // Trigger change events
+                eventTypeInput.dispatchEvent(new Event('change'));
+
+                // Auto-start assessment
+                setTimeout(() => {
+                    if (generateBtn && !generateBtn.disabled) {
+                        console.log('🎯 Auto-starting assessment from main app...');
+                        generateBtn.click();
+                    }
+                }, 1000);
+            };
+
+            // Notify main app when assessment is complete
+            window.notifyAssessmentComplete = function() {
+                if (window.parent !== window) {
+                    // We're in an iframe
+                    window.parent.postMessage({
+                        type: 'ASSESSMENT_COMPLETE',
+                        data: window.getAssessmentData()
+                    }, '*');
+                } else {
+                    // We're in the main window - trigger custom event
+                    const event = new CustomEvent('assessmentComplete', {
+                        detail: window.getAssessmentData()
+                    });
+                    window.dispatchEvent(event);
+                }
+            };
+
+            // Note: completeBtn event listener is already added above in the main event handler section
+
+            // Also trigger when export is clicked (as a completion indicator)
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    setTimeout(() => {
+                        window.notifyAssessmentComplete();
+                    }, 500);
+                });
+            }
         });

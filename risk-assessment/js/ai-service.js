@@ -5,7 +5,8 @@
 
 class AIService {
     constructor() {
-        this.backendURL = 'http://localhost:7001';
+        // Use current origin for backend URL (same server as main app)
+        this.backendURL = window.location.origin;
         this.maxRetries = 3;
         this.retryDelay = 1000; // 1 second
         this.initialized = false;
