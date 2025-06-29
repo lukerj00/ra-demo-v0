@@ -244,6 +244,20 @@ const { jsPDF } = window.jspdf;
                 await startGeneration();
             };
 
+            // Helper function to extract summary paragraphs
+            const extractSummaryParagraph = (summaryElement, paragraphIndex) => {
+                try {
+                    const paragraphs = summaryElement.querySelectorAll('p');
+                    if (paragraphs && paragraphs[paragraphIndex]) {
+                        return paragraphs[paragraphIndex].textContent.trim();
+                    }
+                    return null;
+                } catch (error) {
+                    console.warn(`Could not extract paragraph ${paragraphIndex}:`, error);
+                    return null;
+                }
+            };
+
             // Results collection for API mode
             const collectAssessmentResults = () => {
                 const results = {
@@ -258,8 +272,8 @@ const { jsPDF } = window.jspdf;
                         description: rekonContextDescription.textContent || null
                     },
                     summary: {
-                        paragraph1: summaryParagraph1.textContent || null,
-                        paragraph2: summaryParagraph2.textContent || null
+                        paragraph1: extractSummaryParagraph(summaryContent, 0),
+                        paragraph2: extractSummaryParagraph(summaryContent, 1)
                     },
                     risks: [],
                     metadata: {
