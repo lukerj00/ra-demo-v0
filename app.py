@@ -121,6 +121,114 @@ def get_session_data(session_id):
         logger.error(f"Error retrieving session: {str(e)}")
         return jsonify({"error": f"Failed to retrieve session: {str(e)}"}), 500
 
+@app.route('/api/session/<session_id>/complete', methods=['POST'])
+def complete_assessment(session_id):
+    """Complete assessment and store final results"""
+    try:
+        if not hasattr(app, 'assessment_sessions'):
+            return jsonify({"error": "Session not found"}), 404
+
+        if session_id not in app.assessment_sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+        # Get the results data from request
+        results_data = request.get_json()
+        if not results_data:
+            return jsonify({"error": "No results data provided"}), 400
+
+        # Store results in session
+        app.assessment_sessions[session_id]['results'] = results_data
+        app.assessment_sessions[session_id]['status'] = 'completed'
+        app.assessment_sessions[session_id]['completed_at'] = datetime.now().isoformat()
+
+        logger.info(f"Assessment {session_id} completed successfully")
+
+        return jsonify({
+            "status": "success",
+            "message": "Assessment completed successfully",
+            "session_id": session_id
+        })
+
+    except Exception as e:
+        logger.error(f"Error completing assessment: {str(e)}")
+        return jsonify({"error": f"Failed to complete assessment: {str(e)}"}), 500
+
+@app.route('/api/session/<session_id>/results', methods=['GET'])
+def export_results(session_id):
+    """Export complete assessment results in standardized format"""
+    try:
+        if not hasattr(app, 'assessment_sessions'):
+            return jsonify({"error": "Session not found"}), 404
+
+        if session_id not in app.assessment_sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+        session = app.assessment_sessions[session_id]
+
+        # Check if assessment is completed
+        if session.get('status') != 'completed':
+            return jsonify({"error": "Assessment not completed yet"}), 400
+
+        # Return standardized results format
+        results = {
+            "session_id": session_id,
+            "status": "completed",
+            "event_data": session['event_data'],
+            "assessment_results": session.get('results', {}),
+            "metadata": {
+                "created_at": session['created_at'],
+                "completed_at": session.get('completed_at'),
+                "session_duration_minutes": calculate_session_duration(
+                    session['created_at'],
+                    session.get('completed_at')
+                )
+            }
+        }
+
+        logger.info(f"Results exported for session {session_id}")
+        return jsonify(results)
+
+    except Exception as e:
+        logger.error(f"Error exporting results: {str(e)}")
+        return jsonify({"error": f"Failed to export results: {str(e)}"}), 500
+
+@app.route('/api/session/<session_id>', methods=['DELETE'])
+def cleanup_session(session_id):
+    """Clean up session data after main app has retrieved results"""
+    try:
+        if not hasattr(app, 'assessment_sessions'):
+            return jsonify({"error": "Session not found"}), 404
+
+        if session_id not in app.assessment_sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+        # Remove session data
+        del app.assessment_sessions[session_id]
+
+        logger.info(f"Session {session_id} cleaned up successfully")
+
+        return jsonify({
+            "status": "success",
+            "message": "Session cleaned up successfully"
+        })
+
+    except Exception as e:
+        logger.error(f"Error cleaning up session: {str(e)}")
+        return jsonify({"error": f"Failed to cleanup session: {str(e)}"}), 500
+
+def calculate_session_duration(start_time, end_time):
+    """Calculate session duration in minutes"""
+    try:
+        if not start_time or not end_time:
+            return None
+
+        start = datetime.fromisoformat(start_time)
+        end = datetime.fromisoformat(end_time)
+        duration = (end - start).total_seconds() / 60
+        return round(duration, 2)
+    except:
+        return None
+
 @app.route('/api/ai/generate-overview', methods=['POST'])
 def generate_overview():
     """Generate overview paragraph for risk assessment"""

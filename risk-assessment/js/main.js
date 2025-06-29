@@ -50,6 +50,7 @@ const { jsPDF } = window.jspdf;
             const riskTableBody = document.getElementById('riskTableBody');
             
             const exportBtn = document.getElementById('exportBtn');
+            const completeBtn = document.getElementById('completeBtn');
             const acceptAllContainer = document.getElementById('acceptAllContainer');
             const acceptAllBtn = document.getElementById('acceptAllBtn');
 
@@ -236,8 +237,98 @@ const { jsPDF } = window.jspdf;
                 // Update go back button text for API mode
                 goBackBtn.textContent = '← Return to Main App';
 
+                // Show complete button in API mode
+                completeBtn.classList.remove('hidden');
+
                 // Start the risk assessment generation
                 await startGeneration();
+            };
+
+            // Results collection for API mode
+            const collectAssessmentResults = () => {
+                const results = {
+                    rekon_risk: {
+                        score: rekonRiskScore.textContent || null,
+                        level: rekonRiskLevel.textContent || null,
+                        description: rekonRiskDescription.textContent || null
+                    },
+                    rekon_context: {
+                        score: rekonContextScore.textContent || null,
+                        level: rekonContextLevel.textContent || null,
+                        description: rekonContextDescription.textContent || null
+                    },
+                    summary: {
+                        paragraph1: summaryParagraph1.textContent || null,
+                        paragraph2: summaryParagraph2.textContent || null
+                    },
+                    risks: [],
+                    metadata: {
+                        total_risks: 0,
+                        completed_at: new Date().toISOString(),
+                        user_agent: navigator.userAgent
+                    }
+                };
+
+                // Collect all generated risks
+                const riskRows = document.querySelectorAll('#riskTableBody tr');
+                riskRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 6) {
+                        const riskData = {
+                            risk: cells[0].textContent.trim(),
+                            category: cells[1].textContent.trim(),
+                            impact: parseInt(cells[2].textContent.trim()) || null,
+                            likelihood: parseInt(cells[3].textContent.trim()) || null,
+                            overall: parseFloat(cells[4].textContent.trim()) || null,
+                            mitigation: cells[5].textContent.trim()
+                        };
+
+                        // Add justifications if available
+                        const riskIndex = Array.from(riskRows).indexOf(row);
+                        if (window.riskJustifications && window.riskJustifications[riskIndex]) {
+                            riskData.justifications = window.riskJustifications[riskIndex];
+                        }
+
+                        results.risks.push(riskData);
+                    }
+                });
+
+                results.metadata.total_risks = results.risks.length;
+                return results;
+            };
+
+            const completeAssessment = async () => {
+                if (!isApiMode || !sessionId) {
+                    console.error('Complete assessment called but not in API mode');
+                    return false;
+                }
+
+                try {
+                    // Collect all results
+                    const results = collectAssessmentResults();
+
+                    // Send results to backend
+                    const response = await fetch(`/api/session/${sessionId}/complete`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(results)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to complete assessment: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Assessment completed successfully:', result);
+                    return true;
+
+                } catch (error) {
+                    console.error('Error completing assessment:', error);
+                    alert('Error completing assessment. Please try again.');
+                    return false;
+                }
             };
 
             // Initialize based on mode
@@ -1290,6 +1381,11 @@ const { jsPDF } = window.jspdf;
                 progressBar.style.width = '100%';
                 aiStatus.textContent = 'Generation Complete. Review & Export.';
                 exportBtn.disabled = false;
+
+                // Enable complete button in API mode
+                if (isApiMode && sessionId) {
+                    completeBtn.disabled = false;
+                }
             };
 
             // Generate AI justification for risk fields
@@ -1862,6 +1958,45 @@ const { jsPDF } = window.jspdf;
             };
         
             exportBtn.addEventListener('click', exportToPDF);
+
+            // Complete Assessment Event Handler (API Mode)
+            completeBtn.addEventListener('click', async () => {
+                if (!isApiMode || !sessionId) {
+                    console.error('Complete button clicked but not in API mode');
+                    return;
+                }
+
+                // Disable button and show loading state
+                completeBtn.disabled = true;
+                completeBtn.textContent = 'Completing Assessment...';
+
+                try {
+                    const success = await completeAssessment();
+
+                    if (success) {
+                        completeBtn.textContent = 'Assessment Completed!';
+                        completeBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        completeBtn.classList.add('bg-green-800');
+
+                        // Show success message
+                        alert('Assessment completed successfully! You can now close this window or wait to be redirected back to the main application.');
+
+                        // TODO: In future, redirect back to main app with return URL
+                        // For now, just show completion status
+
+                    } else {
+                        // Reset button on failure
+                        completeBtn.disabled = false;
+                        completeBtn.textContent = 'Complete & Return to Main App';
+                    }
+
+                } catch (error) {
+                    console.error('Error in complete button handler:', error);
+                    completeBtn.disabled = false;
+                    completeBtn.textContent = 'Complete & Return to Main App';
+                    alert('Error completing assessment. Please try again.');
+                }
+            });
 
             // --- Help Pane Logic ---
             const openHelpPane = () => {

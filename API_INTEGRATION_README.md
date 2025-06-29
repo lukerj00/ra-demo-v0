@@ -53,6 +53,62 @@ GET /api/session/{session_id}
 }
 ```
 
+### Complete Assessment
+```
+POST /api/session/{session_id}/complete
+Content-Type: application/json
+
+{
+  "rekon_risk": { "score": "4", "level": "Medium", "description": "..." },
+  "rekon_context": { "score": "6", "level": "High", "description": "..." },
+  "summary": { "paragraph1": "...", "paragraph2": "..." },
+  "risks": [ ... ],
+  "metadata": { "total_risks": 8, "completed_at": "2024-01-15T10:30:00Z" }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Assessment completed successfully",
+  "session_id": "uuid-string"
+}
+```
+
+### Export Results
+```
+GET /api/session/{session_id}/results
+```
+
+**Response:**
+```json
+{
+  "session_id": "uuid-string",
+  "status": "completed",
+  "event_data": { ... },
+  "assessment_results": { ... },
+  "metadata": {
+    "created_at": "2024-01-15T10:30:00Z",
+    "completed_at": "2024-01-15T10:45:00Z",
+    "session_duration_minutes": 15.0
+  }
+}
+```
+
+### Cleanup Session
+```
+DELETE /api/session/{session_id}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Session cleaned up successfully"
+}
+```
+
 ## Required Fields
 
 - `eventTitle`: String - Name of the event
@@ -105,19 +161,27 @@ When accessed with `?session=uuid` parameter:
 
 ## Current Status
 
-✅ **Implemented:**
+✅ **Stage 1 - Complete:**
 - API endpoints for starting assessment
 - Session management
 - Frontend API mode detection
 - Event data loading from session
 - Form skipping in API mode
 
-🚧 **TODO (Next Stages):**
-- Results export API endpoint
-- Return to main app functionality
-- Results format standardization
-- Error handling improvements
-- Session cleanup and timeouts
+✅ **Stage 2 - Complete:**
+- Results export API endpoint (`GET /api/session/{id}/results`)
+- Assessment completion API (`POST /api/session/{id}/complete`)
+- Session cleanup API (`DELETE /api/session/{id}`)
+- "Complete & Return to Main App" button in frontend
+- Standardized results format
+- Complete integration workflow
+
+🚧 **TODO (Future Enhancements):**
+- Return URL redirect functionality
+- Session persistence (Redis/database)
+- Webhook notifications
+- Enhanced error handling
+- Session timeouts and auto-cleanup
 
 ## Example Integration Code
 
