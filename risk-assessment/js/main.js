@@ -66,6 +66,7 @@ const { jsPDF } = window.jspdf;
 
             const rekonMetricsSection = document.getElementById('rekonMetricsSection');
             const rekonRiskScore = document.getElementById('rekonRiskScore');
+            const rekonRiskSlash = document.getElementById('rekonRiskSlash');
             const rekonRiskLevel = document.getElementById('rekonRiskLevel');
             const rekonRiskDescription = document.getElementById('rekonRiskDescription');
             const rekonComplianceStatus = document.getElementById('rekonComplianceStatus');
@@ -1125,6 +1126,7 @@ const { jsPDF } = window.jspdf;
 
                 // Clear scores/status initially
                 rekonRiskScore.textContent = '';
+                rekonRiskSlash.style.visibility = 'hidden';
                 rekonRiskLevel.textContent = '';
                 rekonComplianceStatus.textContent = '';
                 rekonComplianceIcon.innerHTML = '';
@@ -1154,6 +1156,7 @@ const { jsPDF } = window.jspdf;
                     rekonRiskLoader.classList.add('hidden');
                     rekonRiskScore.textContent = score;
                     rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonRiskSlash.style.visibility = 'visible';
                     rekonRiskLevel.textContent = levelInfo.level;
 
                     const riskDescHtml = `
@@ -1168,6 +1171,7 @@ const { jsPDF } = window.jspdf;
                     rekonRiskLoader.classList.add('hidden');
                     rekonRiskScore.textContent = score;
                     rekonRiskScore.className = `text-5xl font-bold ${getRekonRiskColorClass(score)}`;
+                    rekonRiskSlash.style.visibility = 'visible';
                     rekonRiskLevel.textContent = levelInfo.level;
 
                     const riskDescHtml = `
