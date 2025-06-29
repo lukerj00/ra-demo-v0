@@ -186,12 +186,16 @@ def generate_justification_route():
     """Generate justification for a specific field"""
     try:
         data = request.get_json()
+        logger.info(f"Justification request - data type: {type(data)}, data: {data}")
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
         event_data = data.get('eventData', {})
         field_type = data.get('fieldType')
         field_value = data.get('fieldValue')
+
+        # Debug: log the types and values
+        logger.info(f"Justification request - eventData type: {type(event_data)}, fieldType: {field_type}")
 
         if not event_data:
             return jsonify({"error": "eventData is required"}), 400

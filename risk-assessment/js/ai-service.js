@@ -188,11 +188,11 @@ class AIService {
      * @param {Object} context - Additional context
      * @returns {Promise<Object>}
      */
-    async generateJustification(eventData, fieldType, fieldValue) {
+    async generateJustification(fieldName, fieldValue, context = {}) {
         const requestData = {
-            eventData,
-            fieldType,
-            fieldValue
+            eventData: context,
+            fieldType: fieldName,
+            fieldValue: fieldValue
         };
 
         const response = await this.makeRequest('/api/ai/generate-justification', requestData);

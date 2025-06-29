@@ -238,6 +238,25 @@ def generate_justification(event_data, field_type, field_value):
     """Generate justification for a specific field"""
     client = get_openai_client()
 
+    # Handle case where event_data might be a string or mixed context object
+    if isinstance(event_data, str):
+        # If event_data is a string, create a minimal event object
+        event_data = {'eventTitle': 'Event'}
+    elif isinstance(event_data, dict):
+        # If it's a dict, check if it has eventTitle directly or needs extraction
+        if 'eventTitle' not in event_data and 'eventType' in event_data:
+            # It's already a proper eventData object
+            pass
+        elif 'eventTitle' not in event_data:
+            # It might be a mixed context object, try to extract event info
+            event_data = {
+                'eventTitle': event_data.get('eventTitle', event_data.get('title', 'Event')),
+                'eventType': event_data.get('eventType', 'N/A'),
+                'venueType': event_data.get('venueType', 'N/A'),
+                'attendance': event_data.get('attendance', 'N/A'),
+                'location': event_data.get('location', 'N/A')
+            }
+
     # Build justification prompt based on field type
     if field_type == 'overview':
         prompt = f"""Provide a detailed justification for this overview assessment:

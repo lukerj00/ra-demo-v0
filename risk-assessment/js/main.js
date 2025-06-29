@@ -372,7 +372,7 @@ const { jsPDF } = window.jspdf;
                                 riskData.push(riskWithJustifications);
 
                                 // Pre-generate justifications in background (don't wait)
-                                preGenerateJustifications(riskWithJustifications, eventData);
+                                // preGenerateJustifications(riskWithJustifications, eventData);
 
                                 // Brief pause to let user see the new row
                                 await sleep(400);
@@ -571,7 +571,7 @@ const { jsPDF } = window.jspdf;
                     updateApplicationState({ summaryGenerated: true });
 
                     // Pre-generate summary justification in background
-                    preGenerateSummaryJustification(eventData);
+                    // preGenerateSummaryJustification(eventData);
 
                     // Show actions
                     summaryActions.classList.remove('hidden');
@@ -689,7 +689,7 @@ const { jsPDF } = window.jspdf;
                             attendance: attendanceInput.value,
                             location: locationInput.value.trim()
                         };
-                        preGenerateJustifications(riskWithJustifications, eventData);
+                        // preGenerateJustifications(riskWithJustifications, eventData);
 
                         await sleep(300); // Brief pause between additions
                     }
@@ -754,7 +754,7 @@ const { jsPDF } = window.jspdf;
                     attendance: attendanceInput.value,
                     location: locationInput.value.trim()
                 };
-                preGenerateJustifications(customRiskWithJustifications, eventData);
+                // preGenerateJustifications(customRiskWithJustifications, eventData);
 
                 // Close modal and reset form
                 customRiskModal.classList.add('hidden');
