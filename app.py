@@ -1089,8 +1089,8 @@ def display_server_info(host, port):
 if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='AIREKON Risk Assessment API Server')
-    parser.add_argument('--port', '-p', type=int, default=5001,
-                       help='Port to run the server on (default: 5001)')
+    parser.add_argument('--port', '-p', type=int, default=6001,
+                       help='Port to run the server on (default: 6001)')
     parser.add_argument('--host', default='0.0.0.0',
                        help='Host to bind to (default: 0.0.0.0)')
     parser.add_argument('--debug', action='store_true', default=True,
