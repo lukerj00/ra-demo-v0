@@ -1989,24 +1989,13 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                                 if (returnUrl) {
                                     console.log('🎯 Return URL found:', returnUrl);
 
-                                    // Extract event ID and redirect to report view
-                                    const eventIdMatch = returnUrl.match(/event-report\/(\d+)/);
-                                    if (eventIdMatch) {
-                                        const eventId = eventIdMatch[1];
-                                        const reportViewUrl = `http://localhost:9999/report/${eventId}`;
-                                        console.log('🎯 Redirecting to report view:', reportViewUrl);
+                                    // Use the return URL directly - it contains the completion endpoint
+                                    console.log('🎯 Redirecting to completion URL:', returnUrl);
 
-                                        setTimeout(() => {
-                                            console.log('🚀 Redirecting to report view');
-                                            window.location.href = reportViewUrl;
-                                        }, 2000);
-                                    } else {
-                                        // Fallback to dashboard if we can't extract event ID
-                                        console.log('⚠️ Could not extract event ID, redirecting to dashboard');
-                                        setTimeout(() => {
-                                            window.location.href = 'http://localhost:9999/';
-                                        }, 2000);
-                                    }
+                                    setTimeout(() => {
+                                        console.log('🚀 Redirecting to completion endpoint');
+                                        window.location.href = returnUrl;
+                                    }, 2000);
                                 } else {
                                     console.warn('⚠️ No return URL found in session data');
                                     console.log('Session data keys:', Object.keys(sessionData));
