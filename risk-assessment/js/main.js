@@ -1572,11 +1572,11 @@ const { jsPDF } = window.jspdf;
         
                 addHeader();
         
-                // Project Details
+                // Event Card
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFontSize(13);
                 pdf.setFont(undefined, 'bold');
-                pdf.text('Project Details', marginLeft, currentY);
+                pdf.text('Event Card', marginLeft, currentY);
                 currentY += 8;
                 pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
