@@ -5,7 +5,7 @@
 
 class AIService {
     constructor() {
-        this.backendURL = 'http://localhost:5001';
+        this.backendURL = 'http://localhost:6001';
         this.maxRetries = 3;
         this.retryDelay = 1000; // 1 second
         this.initialized = false;

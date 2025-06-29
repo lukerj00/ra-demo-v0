@@ -8,6 +8,8 @@ import json
 import logging
 import argparse
 import socket
+import uuid
+from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -57,6 +59,67 @@ def index():
 def health_check():
     """Health check endpoint"""
     return jsonify({"status": "healthy", "message": "AIREKON Risk Assessment API is running"})
+
+@app.route('/api/start-assessment', methods=['POST'])
+def start_assessment():
+    """Start risk assessment with provided event data"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No event data provided"}), 400
+
+        # Validate required fields
+        required_fields = ['eventTitle', 'eventDate', 'location', 'attendance', 'eventType']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+
+        if missing_fields:
+            return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+        # Generate a session ID for this assessment
+        session_id = str(uuid.uuid4())
+
+        # Store event data in session (in production, use Redis or database)
+        if not hasattr(app, 'assessment_sessions'):
+            app.assessment_sessions = {}
+
+        app.assessment_sessions[session_id] = {
+            'event_data': data,
+            'created_at': datetime.now().isoformat(),
+            'status': 'started'
+        }
+
+        # Return session ID and redirect URL
+        return jsonify({
+            "session_id": session_id,
+            "redirect_url": f"/?session={session_id}",
+            "status": "success"
+        })
+
+    except Exception as e:
+        logger.error(f"Error starting assessment: {str(e)}")
+        return jsonify({"error": f"Failed to start assessment: {str(e)}"}), 500
+
+@app.route('/api/session/<session_id>', methods=['GET'])
+def get_session_data(session_id):
+    """Get session data for a specific assessment"""
+    try:
+        if not hasattr(app, 'assessment_sessions'):
+            return jsonify({"error": "Session not found"}), 404
+
+        if session_id not in app.assessment_sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+        session_data = app.assessment_sessions[session_id]
+        return jsonify({
+            "session_id": session_id,
+            "event_data": session_data['event_data'],
+            "status": session_data['status'],
+            "created_at": session_data['created_at']
+        })
+
+    except Exception as e:
+        logger.error(f"Error retrieving session: {str(e)}")
+        return jsonify({"error": f"Failed to retrieve session: {str(e)}"}), 500
 
 @app.route('/api/ai/generate-overview', methods=['POST'])
 def generate_overview():

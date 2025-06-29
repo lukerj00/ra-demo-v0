@@ -1,6 +1,11 @@
 const { jsPDF } = window.jspdf;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // --- Check for API mode (session parameter) ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            const isApiMode = !!sessionId;
+
             // --- DOM Elements ---
             const screen1 = document.getElementById('screen1');
             const screen2 = document.getElementById('screen2');
@@ -183,6 +188,68 @@ const { jsPDF } = window.jspdf;
             // The actual export will ensure it waits.
             preloadLogo().catch(err => console.warn("Initial logo preload failed, will retry on export:", err));
 
+            // --- API Mode: Load Session Data ---
+            const loadSessionData = async (sessionId) => {
+                try {
+                    const response = await fetch(`/api/session/${sessionId}`);
+                    if (!response.ok) {
+                        throw new Error(`Session not found: ${response.status}`);
+                    }
+                    const sessionData = await response.json();
+                    return sessionData.event_data;
+                } catch (error) {
+                    console.error('Error loading session data:', error);
+                    alert('Error loading assessment session. Please try again.');
+                    return null;
+                }
+            };
+
+            const startApiModeAssessment = async (eventData) => {
+                // Populate form fields with session data (for internal use)
+                eventTitleInput.value = eventData.eventTitle || '';
+                eventDateInput.value = eventData.eventDate || '';
+                locationInput.value = eventData.location || '';
+                attendanceInput.value = eventData.attendance || '';
+                eventTypeInput.value = eventData.eventType || '';
+                venueTypeInput.value = eventData.venueType || '';
+                riskLevelInput.value = eventData.riskLevel || '';
+                descriptionInput.value = eventData.description || '';
+
+                // Update venue type options based on event type
+                if (eventData.eventType && typeOptions[eventData.eventType]) {
+                    venueTypeInput.innerHTML = '<option value="">Select Venue Type</option>';
+                    typeOptions[eventData.eventType].forEach(option => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = option;
+                        optionElement.textContent = option;
+                        if (option === eventData.venueType) {
+                            optionElement.selected = true;
+                        }
+                        venueTypeInput.appendChild(optionElement);
+                    });
+                }
+
+                // Skip form screen and start generation directly
+                screen1.style.display = 'none';
+                screen2.style.display = 'block';
+
+                // Update go back button text for API mode
+                goBackBtn.textContent = '← Return to Main App';
+
+                // Start the risk assessment generation
+                await startGeneration();
+            };
+
+            // Initialize based on mode
+            if (isApiMode && sessionId) {
+                // API Mode: Load session data and start assessment
+                loadSessionData(sessionId).then(eventData => {
+                    if (eventData) {
+                        startApiModeAssessment(eventData);
+                    }
+                });
+            }
+
             // --- Form & File Upload Logic ---
             const validateForm = () => {
                 const requiredFields = [
@@ -291,9 +358,18 @@ const { jsPDF } = window.jspdf;
             };
 
             goBackBtn.addEventListener('click', () => {
-                screen2.classList.add('hidden');
-                screen1.classList.remove('hidden');
-                resetScreen2();
+                if (isApiMode) {
+                    // In API mode, show confirmation before leaving
+                    if (confirm('Are you sure you want to return to the main app? Any unsaved progress will be lost.')) {
+                        // TODO: In future, redirect back to main app
+                        alert('This would normally return you to the main application.');
+                    }
+                } else {
+                    // Normal mode: go back to form
+                    screen2.classList.add('hidden');
+                    screen1.classList.remove('hidden');
+                    resetScreen2();
+                }
             });
 
             // --- Simulation Logic ---
