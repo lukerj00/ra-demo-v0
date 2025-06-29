@@ -4,7 +4,7 @@ const { jsPDF } = window.jspdf;
             // --- DOM Elements ---
             const screen1 = document.getElementById('screen1');
             const screen2 = document.getElementById('screen2');
-            const setupForm = document.getElementById('setupForm');
+
             const eventTitleInput = document.getElementById('eventTitle');
             const eventDateInput = document.getElementById('eventDate');
             const locationInput = document.getElementById('location');
@@ -32,11 +32,7 @@ const { jsPDF } = window.jspdf;
             const cardRiskLevel = document.getElementById('cardRiskLevel');
             const cardDescription = document.getElementById('cardDescription');
             
-            const reportContainer = document.getElementById('reportContainer');
-            const summaryLoader = document.getElementById('summaryLoader');
-            const summaryLoaderText = document.getElementById('summaryLoaderText');
             const summarySection = document.getElementById('summarySection');
-            const summaryContentWrapper = document.getElementById('summaryContentWrapper');
             const summaryContent = document.getElementById('summaryContent');
             const summaryActions = document.getElementById('summaryActions');
             const acceptSummaryBtn = document.getElementById('acceptSummaryBtn');
@@ -57,7 +53,7 @@ const { jsPDF } = window.jspdf;
             const fileList = document.getElementById('fileList');
 
             const justificationPane = document.getElementById('justificationPane');
-            const closeJustificationPane = document.getElementById('closeJustificationPaneBtn');
+
             const justificationFieldName = document.getElementById('justificationFieldName');
             const justificationFieldValue = document.getElementById('justificationFieldValue');
             const justificationReasoning = document.getElementById('justificationReasoning');
@@ -183,15 +179,9 @@ const { jsPDF } = window.jspdf;
                 });
             };
 
-            // Alternative: Embed logo as base64 directly (fallback if canvas method fails)
-            // You can convert your logo to base64 using an online tool and paste it here
-            const FALLBACK_LOGO_BASE64 = null; // Set this if needed
-            
             // Attempt to preload the logo when the script loads, but don't block anything.
             // The actual export will ensure it waits.
             preloadLogo().catch(err => console.warn("Initial logo preload failed, will retry on export:", err));
-
-
 
             // --- Form & File Upload Logic ---
             const validateForm = () => {
@@ -1062,7 +1052,7 @@ const { jsPDF } = window.jspdf;
                         resolve(pngBase64);
                     };
 
-                    img.onerror = (e) => {
+                    img.onerror = () => {
                         console.error("Failed to load SVG image for PDF conversion. SVG content:", preparedSvgString);
                         resolve(null);
                     };
@@ -1310,14 +1300,6 @@ const { jsPDF } = window.jspdf;
 
             // Pre-generate justifications for all fields of a risk in background
             const preGenerateJustifications = async (riskData, eventData) => {
-                const fieldMap = {
-                    'Risk Description': 'risk',
-                    'Category': 'category',
-                    'Impact': 'impact',
-                    'Likelihood': 'likelihood',
-                    'Mitigations': 'mitigation',
-                    'Overall Score': 'overall'
-                };
 
                 const context = {
                     eventTitle: eventData.eventTitle,
