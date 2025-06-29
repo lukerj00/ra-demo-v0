@@ -13,7 +13,7 @@ export class DOMElements {
         this.screen1 = document.getElementById('screen1');
         this.screen2 = document.getElementById('screen2');
         this.setupForm = document.getElementById('setupForm');
-        
+
         // --- Form Input Elements ---
         this.eventTitleInput = document.getElementById('eventTitle');
         this.eventDateInput = document.getElementById('eventDate');

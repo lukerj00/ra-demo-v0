@@ -40,7 +40,7 @@ export class EventHandlers {
      */
     setupFormValidation() {
         const inputs = this.dom.getFormInputs();
-        
+
         // Add validation listeners to all form inputs
         Object.values(inputs).forEach(input => {
             input.addEventListener('input', () => this.validateForm());
@@ -81,7 +81,7 @@ export class EventHandlers {
      */
     handleEventTypeChange(selectedEventType) {
         const venueTypeInput = this.dom.venueTypeInput;
-        
+
         venueTypeInput.innerHTML = '';
 
         if (selectedEventType && VENUE_TYPE_OPTIONS[selectedEventType]) {
