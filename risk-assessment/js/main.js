@@ -1967,18 +1967,64 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         completeBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
                         completeBtn.classList.add('bg-blue-600');
 
-                        // SIMPLE DIRECT REDIRECT - Test this first
-                        console.log('🔄 Starting direct redirect test...');
+                        // Get the proper return URL from session data
+                        console.log('🔄 Getting return URL from session:', sessionId);
                         completeBtn.textContent = 'Redirecting to Main App...';
 
-                        // Direct redirect to main app (you can customize this URL)
-                        const directReturnUrl = 'http://localhost:9999/';
-                        console.log('🚀 Redirecting in 2 seconds to:', directReturnUrl);
+                        try {
+                            const sessionResponse = await fetch(`/api/session/${sessionId}`);
+                            console.log('📡 Session response status:', sessionResponse.status);
 
-                        setTimeout(() => {
-                            console.log('🚀 Redirecting NOW!');
-                            window.location.href = directReturnUrl;
-                        }, 2000);
+                            if (sessionResponse.ok) {
+                                const sessionData = await sessionResponse.json();
+                                console.log('📋 Session data retrieved:', sessionData);
+                                console.log('🔍 Session data keys:', Object.keys(sessionData));
+                                console.log('🔍 Event data keys:', Object.keys(sessionData.event_data || {}));
+                                console.log('🔍 Looking for return_url in session:', sessionData.return_url);
+                                console.log('🔍 Looking for return_url in event_data:', sessionData.event_data?.return_url);
+
+                                // Check both locations for return URL
+                                const returnUrl = sessionData.return_url || sessionData.event_data?.return_url;
+
+                                if (returnUrl) {
+                                    console.log('🎯 Return URL found:', returnUrl);
+                                    console.log('⏱️ Redirecting in 2 seconds...');
+
+                                    setTimeout(() => {
+                                        console.log('🚀 Redirecting to report page:', returnUrl);
+                                        window.location.href = returnUrl;
+                                    }, 2000);
+                                } else {
+                                    console.warn('⚠️ No return URL found in session data');
+                                    console.log('Session data keys:', Object.keys(sessionData));
+
+                                    // Fallback: try to construct return URL from event data
+                                    const eventData = sessionData.event_data;
+                                    if (eventData && eventData.eventTitle) {
+                                        // Try to extract event ID from the original session or use a fallback
+                                        const fallbackUrl = 'http://localhost:9999/';
+                                        console.log('🔄 Using fallback URL (no return URL stored):', fallbackUrl);
+                                        setTimeout(() => {
+                                            window.location.href = fallbackUrl;
+                                        }, 2000);
+                                    } else {
+                                        alert('Assessment completed, but no return URL found. Please manually return to the main application.');
+                                    }
+                                }
+                            } else {
+                                console.error('❌ Failed to get session data:', sessionResponse.status, sessionResponse.statusText);
+                                // Fallback to homepage
+                                setTimeout(() => {
+                                    window.location.href = 'http://localhost:9999/';
+                                }, 2000);
+                            }
+                        } catch (redirectError) {
+                            console.error('❌ Error getting return URL:', redirectError);
+                            // Fallback to homepage
+                            setTimeout(() => {
+                                window.location.href = 'http://localhost:9999/';
+                            }, 2000);
+                        }
 
                     } else {
                         // Reset button on failure

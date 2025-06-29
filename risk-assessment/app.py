@@ -91,14 +91,24 @@ def start_assessment():
         
         # Create new session
         session_id = str(uuid.uuid4())
+
+        # Extract return URL - the integration client puts it in the event data
+        return_url = data.get("return_url")  # Check top level first
+        if not return_url:
+            return_url = data.get("return_url")  # It should be in the main data since that's what the integration sends
+
         sessions[session_id] = {
             "session_id": session_id,
             "event_data": data,
-            "return_url": data.get("return_url"),  # Store return URL if provided
+            "return_url": return_url,  # Store return URL if provided
             "status": "started",
             "created_at": datetime.utcnow().isoformat(),
             "last_updated": datetime.utcnow().isoformat()
         }
+
+        # Debug logging
+        logger.info(f"Session {session_id} created with return_url: {return_url}")
+        logger.info(f"Request data keys: {list(data.keys())}")
         
         logger.info(f"Started assessment session {session_id} for event: {data.get('eventTitle')}")
         
