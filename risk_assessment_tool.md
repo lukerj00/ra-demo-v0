@@ -1,8 +1,8 @@
-# aiRekon Risk Assessment Tool Documentation
+# AIREKON Risk Assessment Tool Documentation
 
 ## Overview
 
-The aiRekon Risk Assessment Tool is a sophisticated web-based application designed to generate comprehensive risk assessments for events and projects. Built by aiRekon, this tool leverages OpenAI's GPT-4 model to provide AI-powered risk analysis, helping event organizers, project managers, and safety professionals identify, assess, and mitigate potential risks in a structured, professional manner.
+The AIREKON Risk Assessment Tool is a sophisticated web-based application designed to generate comprehensive risk assessments for events and projects. Built by AIREKON, this tool leverages OpenAI's GPT-4 model to provide AI-powered risk analysis, helping event organizers, project managers, and safety professionals identify, assess, and mitigate potential risks in a structured, professional manner.
 
 ## Purpose & Use Cases
 
@@ -150,7 +150,7 @@ risk-assessment/
 │   └── config.js          # Configuration and prompt templates
 └── assets/
     └── images/
-        └── airekon_reduced.png  # Company branding
+        └── AIREKON_reduced.png  # Company branding
 ```
 
 ## Workflow Process
@@ -366,4 +366,4 @@ The tool integrates multiple regulatory and industry standards:
 - **Quality Control**: Regular review of AI-generated content accuracy
 - **Cost Management**: Monitor and optimize token usage patterns
 
-This documentation provides a comprehensive overview of the AI-powered aiRekon Risk Assessment Tool, detailing its OpenAI integration, technical implementation, and value proposition for professional risk management in event planning and project execution.
+This documentation provides a comprehensive overview of the AI-powered AIREKON Risk Assessment Tool, detailing its OpenAI integration, technical implementation, and value proposition for professional risk management in event planning and project execution.

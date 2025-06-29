@@ -98,7 +98,7 @@ const { jsPDF } = window.jspdf;
             // --- State ---
             let riskData = [];
             let currentProjectName = "";
-            let aiRekonLogoBase64 = null; // To store the base64 logo for PDF
+            let AIREKONLogoBase64 = null; // To store the base64 logo for PDF
             let currentConversationId = null; // Store conversation ID for additional risks
 
             // --- Simple State Management ---
@@ -142,7 +142,7 @@ const { jsPDF } = window.jspdf;
             const preloadLogo = () => {
                 return new Promise((resolve, reject) => {
                     try {
-                        console.log('Attempting to load logo: assets/images/airekon.png');
+                        console.log('Attempting to load logo: assets/images/AIREKON.png');
                         
                         const img = new Image();
                         img.crossOrigin = 'anonymous'; 
@@ -160,7 +160,7 @@ const { jsPDF } = window.jspdf;
                                 // Changed to image/png for .png file
                                 const base64 = canvas.toDataURL('image/png'); 
                                 console.log('Logo converted to base64 (PNG), length:', base64.length);
-                                aiRekonLogoBase64 = base64;
+                                AIREKONLogoBase64 = base64;
                                 resolve(base64);
                             } catch (e) {
                                 console.error('Error converting image to base64:', e);
@@ -169,11 +169,11 @@ const { jsPDF } = window.jspdf;
                         };
                         
                         img.onerror = function() {
-                            console.error('Failed to load logo image from assets/images/airekon.png');
+                            console.error('Failed to load logo image from assets/images/AIREKON.png');
                             reject('Failed to load logo image');
                         };
                         
-                        img.src = 'assets/images/airekon.png';
+                        img.src = 'assets/images/AIREKON.png';
                         
                     } catch (error) {
                         console.error('Error in preloadLogo function:', error);
@@ -483,7 +483,7 @@ const { jsPDF } = window.jspdf;
             const startGeneration = async () => {
                 currentProjectName = eventTitleInput.value.trim();
                 screen1.classList.add('hidden');
-                reportScreenTitle.textContent = `aiRekon Automated Risk Assessment`;
+                reportScreenTitle.textContent = `AIREKON Automated Risk Assessment`;
 
                 let eventDateFormatted = 'N/A';
                 if (eventDateInput.value) {
@@ -1503,7 +1503,7 @@ const { jsPDF } = window.jspdf;
                 exportBtn.disabled = true;
                 exportBtn.textContent = 'Generating PDF...';
         
-                let localLogoBase64 = aiRekonLogoBase64;
+                let localLogoBase64 = AIREKONLogoBase64;
                 if (!localLogoBase64) {
                     try {
                         localLogoBase64 = await preloadLogo();
@@ -1527,7 +1527,7 @@ const { jsPDF } = window.jspdf;
                     } else {
                         pdf.setFontSize(10);
                         pdf.setTextColor(150, 150, 150);
-                        pdf.text("aiRekon", marginLeft, marginTop + 5);
+                        pdf.text("AIREKON", marginLeft, marginTop + 5);
                     }
                     pdf.setFontSize(16);
                     pdf.setTextColor(0, 0, 0);
@@ -1555,7 +1555,7 @@ const { jsPDF } = window.jspdf;
                         pdf.setPage(i);
                         pdf.setFontSize(9);
                         pdf.setTextColor(128);
-                        pdf.text(`Page ${i} of ${pageCount} | aiRekon Automated Risk Assessment`, pageWidth / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
+                        pdf.text(`Page ${i} of ${pageCount} | AIREKON Automated Risk Assessment`, pageWidth / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
                     }
                 };
         

@@ -1,5 +1,5 @@
 """
-Flask Backend for aiRekon Risk Assessment Tool
+Flask Backend for AIREKON Risk Assessment Tool
 Handles OpenAI API requests securely on the server side
 """
 
@@ -54,7 +54,7 @@ def index():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "message": "aiRekon Risk Assessment API is running"})
+    return jsonify({"status": "healthy", "message": "AIREKON Risk Assessment API is running"})
 
 @app.route('/api/ai/generate-overview', methods=['POST'])
 def generate_overview():
