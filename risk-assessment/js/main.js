@@ -79,6 +79,37 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
 
             // Initialize risk level options on page load
             initializeRiskLevelOptions();
+
+            // --- Initialize Event Type Options ---
+            const initializeEventTypeOptions = () => {
+                const eventTypeOptions = [
+                    { value: 'Music', text: 'Music' },
+                    { value: 'Community', text: 'Community' },
+                    { value: 'State', text: 'State' },
+                    { value: 'Sport', text: 'Sport' },
+                    { value: 'Other', text: 'Other' }
+                ];
+
+                // Clear existing options
+                eventTypeInput.innerHTML = '';
+
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select Event Type';
+                eventTypeInput.appendChild(defaultOption);
+
+                // Add event type options
+                eventTypeOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.text;
+                    eventTypeInput.appendChild(optionElement);
+                });
+            };
+
+            // Initialize event type options on page load
+            initializeEventTypeOptions();
             const tableLoader = document.getElementById('tableLoader');
             const riskTableBody = document.getElementById('riskTableBody');
             
