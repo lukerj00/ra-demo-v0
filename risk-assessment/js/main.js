@@ -538,7 +538,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         console.log(`🤖 Started risk conversation: ${conversationId}`);
 
                         // Generate risks progressively in order of importance
-                        const totalRisks = 6;
+                        const totalRisks = 8;
 
                         for (let i = 1; i <= totalRisks; i++) {
                             const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
@@ -588,7 +588,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         // Fallback to legacy method if conversation fails
                         aiStatus.textContent = "Falling back to standard risk generation...";
 
-                        const totalRisks = 6;
+                        const totalRisks = 8;
                         for (let i = 1; i <= totalRisks; i++) {
                             try {
                                 const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
