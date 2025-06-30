@@ -347,8 +347,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     },
                     rekon_compliance: {
                         status: complianceStatusText,
-                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : ''],
-                        score: getComplianceScore(complianceStatusText)
+                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : '']
                     },
                     summary: {
                         paragraph1: extractSummaryParagraph(summaryContent, 0),
@@ -2266,6 +2265,21 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
 
             // Expose application state for main app integration
             window.getAssessmentData = function() {
+                // Collect all justifications from riskData
+                const justifications = {};
+                if (riskData && riskData.length > 0) {
+                    riskData.forEach((risk, index) => {
+                        if (risk.justifications) {
+                            justifications[index] = risk.justifications;
+                        }
+                    });
+                }
+
+                // Include summary justification if available
+                if (applicationState.summaryJustification) {
+                    justifications.summary_justification = applicationState.summaryJustification;
+                }
+
                 return {
                     eventData: {
                         eventTitle: eventTitleInput.value.trim(),
@@ -2282,7 +2296,8 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     metadata: {
                         completed_at: new Date().toISOString(),
                         total_risks: document.querySelectorAll('#riskTableBody tr').length,
-                        source: 'AI Risk Assessment Tool'
+                        source: 'AI Risk Assessment Tool',
+                        justifications: justifications
                     }
                 };
             };
@@ -2292,15 +2307,31 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 const risks = [];
                 const rows = document.querySelectorAll('#riskTableBody tr');
 
-                rows.forEach(row => {
+                rows.forEach((row, index) => {
                     const cells = row.querySelectorAll('td');
                     if (cells.length >= 4) {
-                        risks.push({
+                        const riskObj = {
                             risk: cells[0].textContent.trim(),
                             impact: parseInt(cells[1].textContent) || 3,
                             likelihood: parseInt(cells[2].textContent) || 3,
                             mitigation: cells[3].textContent.trim()
-                        });
+                        };
+
+                        // Add category if available (6-column format)
+                        if (cells.length >= 6) {
+                            riskObj.category = cells[1].textContent.trim();
+                            riskObj.impact = parseInt(cells[2].textContent) || 3;
+                            riskObj.likelihood = parseInt(cells[3].textContent) || 3;
+                            riskObj.overall = parseFloat(cells[4].textContent) || null;
+                            riskObj.mitigation = cells[5].textContent.trim();
+                        }
+
+                        // Include justifications from global riskData array if available
+                        if (riskData && riskData[index] && riskData[index].justifications) {
+                            riskObj.justifications = riskData[index].justifications;
+                        }
+
+                        risks.push(riskObj);
                     }
                 });
 
@@ -2321,20 +2352,6 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     };
                 }
                 return {};
-            }
-
-            // Helper function to convert compliance status to score
-            function getComplianceScore(status) {
-                switch (status) {
-                    case 'Exceeds Compliance':
-                        return 7;
-                    case 'Compliant':
-                        return 5;
-                    case 'Non-Compliant':
-                        return 2;
-                    default:
-                        return 4;
-                }
             }
 
             // Get REKON metrics
@@ -2384,8 +2401,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
 
                     metrics.rekon_compliance = {
                         status: complianceStatusText,
-                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : ''],
-                        score: getComplianceScore(complianceStatusText)
+                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : '']
                     };
                 }
 
