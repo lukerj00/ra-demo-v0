@@ -2307,6 +2307,20 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 return {};
             }
 
+            // Helper function to convert compliance status to score
+            function getComplianceScore(status) {
+                switch (status) {
+                    case 'Exceeds Compliance':
+                        return 7;
+                    case 'Compliant':
+                        return 5;
+                    case 'Non-Compliant':
+                        return 2;
+                    default:
+                        return 4;
+                }
+            }
+
             // Get REKON metrics
             function getRekonMetrics() {
                 const metrics = {};
@@ -2334,6 +2348,26 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         score: contextScore.textContent.trim(),
                         level: contextLevel.textContent.trim(),
                         description: contextDesc ? contextDesc.textContent.trim() : ''
+                    };
+                }
+
+                // REKON Compliance
+                const complianceStatus = document.getElementById('rekonComplianceStatus');
+                const complianceDesc = document.getElementById('rekonComplianceDescription');
+
+                if (complianceStatus) {
+                    let complianceDetails = [];
+
+                    // Extract individual bullet points from the HTML list
+                    if (complianceDesc) {
+                        const listItems = complianceDesc.querySelectorAll('li');
+                        complianceDetails = Array.from(listItems).map(li => li.textContent.trim());
+                    }
+
+                    metrics.rekon_compliance = {
+                        status: complianceStatus.textContent.trim(),
+                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : ''],
+                        score: complianceDetails.length > 0 ? getComplianceScore(complianceStatus.textContent.trim()) : 4
                     };
                 }
 
