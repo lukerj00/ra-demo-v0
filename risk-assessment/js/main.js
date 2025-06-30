@@ -48,6 +48,37 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
             const summaryJustificationIcon = document.getElementById('summaryJustificationIcon');
 
             const riskTableSection = document.getElementById('riskTableSection');
+
+            // --- Initialize Risk Level Options ---
+            const initializeRiskLevelOptions = () => {
+                const riskLevelOptions = [
+                    { value: '1', text: 'Very Low' },
+                    { value: '2', text: 'Low' },
+                    { value: '3', text: 'Medium' },
+                    { value: '4', text: 'High' },
+                    { value: '5', text: 'Critical' }
+                ];
+
+                // Clear existing options
+                riskLevelInput.innerHTML = '';
+
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select Risk Level';
+                riskLevelInput.appendChild(defaultOption);
+
+                // Add risk level options
+                riskLevelOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.text;
+                    riskLevelInput.appendChild(optionElement);
+                });
+            };
+
+            // Initialize risk level options on page load
+            initializeRiskLevelOptions();
             const tableLoader = document.getElementById('tableLoader');
             const riskTableBody = document.getElementById('riskTableBody');
             
@@ -593,7 +624,21 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
 
                 const riskLevelValue = riskLevelInput.value;
                 if (riskLevelValue) {
-                    const riskLevelText = riskLevelInput.options[riskLevelInput.selectedIndex].text;
+                    // Try to get text from selected option, fallback to mapping
+                    let riskLevelText = 'Not assessed';
+                    if (riskLevelInput.selectedIndex >= 0 && riskLevelInput.options[riskLevelInput.selectedIndex]) {
+                        riskLevelText = riskLevelInput.options[riskLevelInput.selectedIndex].text;
+                    } else {
+                        // Fallback mapping for API values
+                        const riskLevelMap = {
+                            '1': 'Very Low',
+                            '2': 'Low',
+                            '3': 'Medium',
+                            '4': 'High',
+                            '5': 'Critical'
+                        };
+                        riskLevelText = riskLevelMap[riskLevelValue] || `Level ${riskLevelValue}`;
+                    }
                     cardRiskLevel.textContent = riskLevelText;
                     cardRiskLevel.className = `text-sm font-semibold mt-1 ${getRiskLevelColor(riskLevelValue)}`;
                 } else {
@@ -1722,7 +1767,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     `Attendance: ${attendanceInput.value ? parseInt(attendanceInput.value).toLocaleString() + ' people' : 'N/A'}`,
                     `Event Type: ${eventTypeInput.value || 'N/A'}`,
                     `Venue Type: ${venueTypeInput.value || 'N/A'}`,
-                    `Risk Level: ${riskLevelInput.value ? riskLevelInput.options[riskLevelInput.selectedIndex].text : 'Not assessed'}`
+                    `Risk Level: ${riskLevelInput.value ? (riskLevelInput.selectedIndex >= 0 && riskLevelInput.options[riskLevelInput.selectedIndex] ? riskLevelInput.options[riskLevelInput.selectedIndex].text : ({'1': 'Very Low', '2': 'Low', '3': 'Medium', '4': 'High', '5': 'Critical'}[riskLevelInput.value] || `Level ${riskLevelInput.value}`)) : 'Not assessed'}`
                 ];
                 projectInfo.forEach(detail => {
                     checkPageBreak(5);
