@@ -323,6 +323,17 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
 
             // Results collection for API mode
             const collectAssessmentResults = () => {
+                // Extract compliance details
+                let complianceDetails = [];
+                const complianceDesc = document.getElementById('rekonComplianceDescription');
+                if (complianceDesc) {
+                    const listItems = complianceDesc.querySelectorAll('li');
+                    complianceDetails = Array.from(listItems).map(li => li.textContent.trim());
+                }
+
+                const complianceStatus = document.getElementById('rekonComplianceStatus');
+                const complianceStatusText = complianceStatus ? complianceStatus.textContent.trim() : '';
+
                 const results = {
                     rekon_risk: {
                         score: rekonRiskScore.textContent || null,
@@ -333,6 +344,11 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         score: rekonContextScore.textContent || null,
                         level: rekonContextLevel.textContent || null,
                         description: rekonContextDescription.textContent || null
+                    },
+                    rekon_compliance: {
+                        status: complianceStatusText,
+                        description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : ''],
+                        score: getComplianceScore(complianceStatusText)
                     },
                     summary: {
                         paragraph1: extractSummaryParagraph(summaryContent, 0),
@@ -2364,10 +2380,12 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         complianceDetails = Array.from(listItems).map(li => li.textContent.trim());
                     }
 
+                    const complianceStatusText = complianceStatus.textContent.trim();
+
                     metrics.rekon_compliance = {
-                        status: complianceStatus.textContent.trim(),
+                        status: complianceStatusText,
                         description: complianceDetails.length > 0 ? complianceDetails : [complianceDesc ? complianceDesc.textContent.trim() : ''],
-                        score: complianceDetails.length > 0 ? getComplianceScore(complianceStatus.textContent.trim()) : 4
+                        score: getComplianceScore(complianceStatusText)
                     };
                 }
 
