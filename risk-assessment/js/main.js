@@ -1031,8 +1031,8 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     <td class="px-6 py-4 whitespace-normal text-sm justification-icon-container" data-field="risk">
                         ${createCellContent(risk.risk, 'Risk Description', risk.id)}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm justification-icon-container" data-field="category">
-                        ${createCellContent(risk.category, 'Category', risk.id)}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm" data-field="category">
+                        <div>${risk.category}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm justification-icon-container" data-field="impact">
                         ${createCellContent(risk.impact, 'Impact', risk.id, true)}
@@ -1085,10 +1085,12 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                             reasoning = `The Overall Score (${overall}) is calculated by multiplying Impact (${currentRisk.impact}) by Likelihood (${currentRisk.likelihood}).`;
                             sources = ['Risk Scoring Matrix', 'Internal Calculation Logic'];
                             openJustificationPane(fieldName, fieldValue, reasoning, sources);
+                        } else if (fieldName === 'Category') {
+                            // Skip justification generation for Category field
+                            return;
                         } else {
                             // For other fields, get fieldValue from currentRisk
                             if (fieldName === 'Risk Description') fieldValue = currentRisk.risk;
-                            else if (fieldName === 'Category') fieldValue = currentRisk.category;
                             else if (fieldName === 'Impact') fieldValue = currentRisk.impact.toString();
                             else if (fieldName === 'Likelihood') fieldValue = currentRisk.likelihood.toString();
                             else if (fieldName === 'Mitigations') fieldValue = currentRisk.mitigation;
@@ -1160,7 +1162,6 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                          // Clear stored justifications for changed fields
                          const fieldMappings = {
                              'risk': { old: oldValues.risk, new: riskItem.risk },
-                             'category': { old: oldValues.category, new: riskItem.category },
                              'impact': { old: oldValues.impact, new: riskItem.impact },
                              'likelihood': { old: oldValues.likelihood, new: riskItem.likelihood },
                              'mitigation': { old: oldValues.mitigation, new: riskItem.mitigation }
@@ -1465,7 +1466,6 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 // Map field names to justification keys
                 const fieldMap = {
                     'Risk Description': 'risk',
-                    'Category': 'category',
                     'Impact': 'impact',
                     'Likelihood': 'likelihood',
                     'Mitigations': 'mitigation',
