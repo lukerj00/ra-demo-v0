@@ -1,17 +1,29 @@
 # aiRekon Risk Assessment Tool
 
-A secure AI-powered risk assessment tool with Flask backend and frontend interface.
+A sophisticated AI-powered risk assessment platform designed for comprehensive event risk analysis. Built with Flask backend and modern web frontend, this tool leverages OpenAI's GPT-4 to generate professional risk assessments for events ranging from small community gatherings to large-scale festivals and state ceremonies.
 
-## Security Architecture
+## 🎯 Overview
 
-This application now uses a secure architecture where:
+The aiRekon Risk Assessment Tool provides:
+- **AI-Powered Risk Analysis**: Contextual risk identification using OpenAI GPT-4
+- **Professional Documentation**: Exportable PDF reports for stakeholders and authorities
+- **API-First Design**: Seamless integration with existing event management systems
+- **Compliance Support**: Aligned with regulatory frameworks including Martyn's Law and ProtectUK guidance
+
+## 🔒 Security Architecture
+
+This application implements enterprise-grade security:
 - ✅ **API keys are stored securely on the backend** (in `.env` file)
 - ✅ **Frontend never sees or handles API keys**
 - ✅ **All AI requests go through the backend API**
 - ✅ **CORS is properly configured**
-- ✅ **No more browser CORS issues**
+- ✅ **No browser CORS issues**
 
-## Quick Start
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- OpenAI API key
 
 ### 1. Install Dependencies
 
@@ -19,111 +31,294 @@ This application now uses a secure architecture where:
 pip install -r requirements.txt
 ```
 
-### 2. Configure API Key
+### 2. Configure Environment
 
-Make sure your `.env` file contains your OpenAI API key:
+Create a `.env` file in the project root:
 
-```
+```bash
 OPENAI_API_KEY=sk-your-actual-api-key-here
 ```
 
-### 3. Start the Backend
+### 3. Start the Application
 
 ```bash
 python start_backend.py
 ```
 
-This will start the Flask backend on `http://localhost:5000`
+This will:
+- Verify all dependencies are installed
+- Check your API key configuration
+- Start the Flask backend on `http://localhost:5000`
+- Display available API endpoints
 
-### 4. Open the Frontend
+### 4. Access the Tool
 
-Open `risk-assessment/index.html` in your web browser. The frontend will automatically connect to the backend.
+**For API Integration (Recommended):**
+- Use the API endpoints to integrate with your existing event management system
+- See [API Integration Guide](API_INTEGRATION_README.md) for detailed documentation
 
-## API Endpoints
+**For Direct Access:**
+- Open `http://localhost:5000` in your web browser
+- The tool is designed for API integration but can be accessed directly for testing
 
-The Flask backend provides these endpoints:
+## 🔌 API Endpoints
 
-- `GET /health` - Health check
-- `POST /api/ai/generate-overview` - Generate overview paragraph
-- `POST /api/ai/generate-operational` - Generate operational paragraph  
-- `POST /api/ai/generate-risks` - Generate risk assessment table
-- `POST /api/ai/generate-justification` - Generate field justifications
+### Core AI Generation
+- `GET /health` - Health check and system status
+- `POST /api/ai/generate-overview` - Generate contextual overview paragraph
+- `POST /api/ai/generate-operational` - Generate operational considerations
+- `POST /api/ai/generate-risks` - Generate comprehensive risk assessment table
+- `POST /api/ai/generate-justification` - Generate field-specific justifications
 
-## Architecture
+### Session Management (API Integration)
+- `POST /api/start-assessment` - Start new assessment with event data
+- `GET /api/session/{session_id}` - Retrieve session data
+- `POST /api/session/{session_id}/complete` - Complete assessment
+- `GET /api/session/{session_id}/results` - Export results
+- `DELETE /api/session/{session_id}` - Cleanup session
 
+## 🏗️ Architecture
+
+```
+Main App → API Integration → aiRekon Backend → OpenAI GPT-4
+    ↓           ↓                 ↓              ↓
+Event Data → Session Mgmt → AI Processing → Risk Analysis
+    ↓           ↓                 ↓              ↓
+Database ← Results Export ← Frontend UI ← Generated Content
+```
+
+**Security Flow:**
 ```
 Frontend (HTML/JS) → Flask Backend → OpenAI API
      ↑                    ↑              ↑
   No API key         API key secure   Actual AI calls
 ```
 
-## Files Changed
+## 📁 Project Structure
 
-- `app.py` - New Flask backend server
-- `requirements.txt` - Python dependencies
-- `risk-assessment/js/ai-service.js` - Updated to use backend API
-- `risk-assessment/js/api-config.js` - Simplified initialization
-- `risk-assessment/index.html` - Removed env-loader script
+```
+ra-demo-v0/
+├── app.py                          # Main Flask backend server
+├── start_backend.py                # Startup script with validation
+├── requirements.txt                # Python dependencies
+├── risk-assessment/                # Frontend application
+│   ├── index.html                  # Main web interface
+│   ├── css/style.css              # Styling
+│   └── js/                        # JavaScript modules
+├── API_INTEGRATION_README.md       # API integration guide
+├── TESTING.md                      # Testing procedures
+└── risk_assessment_tool.md         # Detailed documentation
+```
 
-## Development
+## ✨ Key Features
 
-- Backend runs on `http://localhost:5000`
-- Frontend can be opened directly in browser
-- CORS is configured to allow frontend-backend communication
-- All API keys and sensitive data stay on the backend
+### 🧠 AI-Powered Risk Analysis
+- **GPT-4 Integration**: Leverages OpenAI's most advanced model for contextual risk assessment
+- **Event-Specific Analysis**: Risks tailored to event type, venue, attendance, and circumstances
+- **Importance-Based Ordering**: Risks generated in order of criticality (most critical first)
+- **Conversation Context**: AI maintains context to ensure diverse, non-repetitive risk identification
+- **Realistic Scoring**: Impact and likelihood scores reflect realistic assessment for specific events
 
-## New Features
+### 📊 Comprehensive Risk Categories
+- **Crowd Safety**: Capacity management, crowd dynamics, emergency evacuation
+- **Environmental**: Weather conditions, venue hazards, accessibility
+- **Security**: Threat assessment, access control, surveillance
+- **Medical**: Emergency response, first aid, health considerations
+- **Operational**: Logistics, staffing, equipment management
+- **Logistics**: Supply chain, transportation, vendor coordination
 
-### Data Persistence & State Management
+### 💾 Smart Data Management
+- **Justification Caching**: Generated justifications are cached for instant access
+- **Smart Cache Invalidation**: Automatic cache clearing when risk values are edited
+- **State Tracking**: Real-time tracking of assessment progress and data
+- **Session Persistence**: Maintains data integrity throughout the assessment process
 
-- **Justification Caching**: Once a justification is generated for a field, it's cached and reused when the same field is clicked again
-- **Smart Cache Invalidation**: When you edit risk values, related cached justifications are automatically cleared
-- **State Tracking**: Application tracks current step, event data, and generation status
-- **Debug Tools**: Use `window.debugRiskAssessment()` in browser console to inspect current state
+### 🎨 Enhanced User Experience
+- **Progressive Loading**: Visual feedback during AI content generation
+- **Contextual Indicators**: Loading states appear where final content will be displayed
+- **Consistent Design**: Unified visual language across all interface elements
+- **Responsive Layout**: Optimized for desktop and mobile devices
 
-### How It Works
+### 🔄 Dynamic Risk Management
+- **Generate More Risks**: Add additional risks ranked by importance (7th, 8th, 9th most critical)
+- **Custom Risk Entry**: Manual addition of organization-specific risks
+- **Real-time Editing**: Inline editing of risk descriptions, scores, and mitigation strategies
+- **Pre-generated Justifications**: Background generation for instant access
 
-1. **First Time**: Click a justification icon → AI generates content → Content is stored in data structure
-2. **Subsequent Times**: Click the same field → Stored content is instantly displayed
-3. **After Editing**: Edit a risk value → Related stored justifications are cleared → Fresh AI content generated on next click
+## 🔗 API Integration
 
-### UI Improvements
+The aiRekon Risk Assessment Tool is designed for seamless integration with existing event management systems:
 
-- **Consistent Loading States**: Loading messages now use the same spinning circle icon as the risk table
-- **Contextual Placement**: Loading indicators appear directly in the content area where the final text will be displayed
-- **Progressive Generation**: Shows spinning loader with "AI is generating overview paragraph..." then "AI is generating operational considerations..." in the actual summary area
-- **Visual Consistency**: All loading states use the same design pattern throughout the application
+### Integration Workflow
+1. **Main Application** creates event data
+2. **API Call** to `/api/start-assessment` with event parameters
+3. **Session Creation** returns session ID and frontend URL
+4. **User Redirect** to aiRekon assessment interface
+5. **Risk Assessment** completed by user in aiRekon tool
+6. **Results Export** via `/api/session/{id}/results`
+7. **Data Integration** back to main application database
 
-### AI Risk Generation Improvements
+### Supported Event Types
+- **Music Events**: Festivals, concerts, nightclub events, arena tours
+- **Community Events**: Street fairs, charity fundraisers, cultural festivals
+- **State Events**: Official ceremonies, VIP visits, political conferences
+- **Sport Events**: Stadium matches, marathons, motorsport races
+- **Corporate Events**: Conferences, product launches, exhibitions
 
-- **Importance-Based Ordering**: Risks are now generated in order of importance (most critical first)
-- **Event-Specific Analysis**: Each risk is highly specific to the actual event type, venue, and circumstances
-- **Conversation Context**: AI maintains conversation context to ensure diverse, non-repetitive risks
-- **Realistic Assessment**: Impact and likelihood scores reflect realistic assessment for the specific event
-- **Progressive Labels**: Loading shows "most critical", "second most critical", etc. to indicate importance ranking
+### API-First Design
+- **No Manual Forms**: All event data provided via API
+- **Session-Based**: Secure session management for multi-step assessments
+- **Standardized Output**: Consistent JSON format for easy integration
+- **Real-time Status**: Track assessment progress via API calls
 
-### New Features
+## 🧪 Testing & Development
 
-#### Generate More Risks
-- **Importance-Based Continuation**: Click "Generate More Risks" to add 3 more risks ranked as 7th, 8th, and 9th most critical
-- **Maintains Priority Order**: Additional risks continue the importance hierarchy from the initial 6 most critical risks
-- **Contextual Continuation**: Uses the same conversation context to ensure new risks are different from existing ones
-- **Comprehensive Coverage**: Additional risks cover secondary concerns while maintaining realistic importance ranking
+### Running Tests
+```bash
+# Test API integration
+python test_api_integration.py
 
-#### Add Custom Risk
-- **Manual Risk Entry**: Click "Add Custom Risk" to open a form for manually adding risks
-- **Complete Control**: Specify risk description, category, impact, likelihood, and mitigation strategy
-- **Professional Integration**: Custom risks integrate seamlessly with AI-generated ones
+# Test main app integration workflow
+python example_main_app_integration.py
 
-#### Pre-Generated Justifications
-- **Instant Access**: Justifications are generated in the background as soon as risks are created
-- **No Waiting**: Click any justification icon (?) and see content immediately - no loading time
-- **Background Processing**: AI generates justifications for key fields while you review other content
-- **Smart Caching**: All justifications are stored and persist throughout your session
+# Test stage 2 integration features
+python test_stage2_integration.py
+```
 
-## Security Benefits
+### Development Mode
+```bash
+# Start with debug mode
+python app.py --debug
 
-1. **No API key exposure** - Keys never leave the server
-2. **No CORS issues** - Proper backend handles external API calls
-3. **Centralized security** - All authentication in one place
-4. **Production ready** - Easy to deploy with proper security
+# Start on custom port
+python app.py --port=7001
+
+# View detailed logs
+python app.py --verbose
+```
+
+### Testing Features
+See [TESTING.md](TESTING.md) for comprehensive testing procedures including:
+- Justification caching validation
+- Cache invalidation testing
+- State management verification
+- Debug console commands
+
+## 🔒 Security Benefits
+
+1. **🔐 No API key exposure** - Keys never leave the server environment
+2. **🌐 No CORS issues** - Proper backend handles all external API calls
+3. **🎯 Centralized security** - All authentication and authorization in one place
+4. **🚀 Production ready** - Designed for secure deployment with proper security controls
+5. **📝 Audit trail** - Comprehensive logging for security monitoring
+6. **🔄 Session management** - Secure session handling with automatic cleanup
+
+## 📋 Dependencies
+
+### Backend Requirements
+- **Flask 3.0.0** - Web framework
+- **Flask-CORS 4.0.0** - Cross-origin resource sharing
+- **python-dotenv 1.0.0** - Environment variable management
+- **openai >=1.0.0** - OpenAI API client
+- **gunicorn 21.2.0** - WSGI HTTP server for production
+- **httpx >=0.24.0** - HTTP client library
+
+### Frontend Technologies
+- **Tailwind CSS** - Utility-first CSS framework
+- **Chart.js** - Data visualization
+- **jsPDF** - PDF generation
+- **Vanilla JavaScript** - No framework dependencies
+
+## 🚀 Deployment
+
+### Production Deployment
+```bash
+# Install production dependencies
+pip install -r requirements.txt
+
+# Set production environment variables
+export FLASK_ENV=production
+export OPENAI_API_KEY=your-production-key
+
+# Start with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+### Docker Deployment
+```dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+```
+
+### Environment Configuration
+```bash
+# Required environment variables
+OPENAI_API_KEY=sk-your-openai-api-key
+FLASK_ENV=production
+FLASK_SECRET_KEY=your-secret-key
+
+# Optional configuration
+CORS_ORIGINS=https://yourdomain.com
+LOG_LEVEL=INFO
+SESSION_TIMEOUT=3600
+```
+
+## 📚 Documentation
+
+- **[API Integration Guide](API_INTEGRATION_README.md)** - Complete API integration documentation
+- **[Testing Procedures](TESTING.md)** - Comprehensive testing guide
+- **[Tool Documentation](risk_assessment_tool.md)** - Detailed feature documentation
+- **[Setup Guide](risk-assessment/SETUP.md)** - Frontend setup instructions
+
+## 🤝 Contributing
+
+### Development Setup
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Install dependencies: `pip install -r requirements.txt`
+4. Set up environment: Copy `.env.example` to `.env` and configure
+5. Run tests: `python -m pytest`
+6. Commit changes: `git commit -m 'Add amazing feature'`
+7. Push to branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+### Code Standards
+- Follow PEP 8 for Python code
+- Use meaningful variable and function names
+- Add docstrings for all functions and classes
+- Include unit tests for new features
+- Update documentation for API changes
+
+## 📄 License
+
+This project is proprietary software developed by aiRekon. All rights reserved.
+
+## 🆘 Support
+
+For technical support or questions:
+- **Documentation**: Check the comprehensive guides in this repository
+- **Issues**: Report bugs via GitHub Issues
+- **API Questions**: Refer to [API_INTEGRATION_README.md](API_INTEGRATION_README.md)
+- **Testing**: Follow procedures in [TESTING.md](TESTING.md)
+
+## 🔄 Version History
+
+### Current Version: v2.0
+- ✅ API-first design with session management
+- ✅ Enhanced AI risk generation with GPT-4
+- ✅ Smart caching and state management
+- ✅ Comprehensive testing suite
+- ✅ Production-ready security architecture
+
+### Previous Versions
+- **v1.0**: Initial release with basic risk assessment
+- **v1.5**: Added frontend improvements and caching
+
+---
+
+**Built with ❤️ by aiRekon** - Transforming risk assessment through AI innovation
