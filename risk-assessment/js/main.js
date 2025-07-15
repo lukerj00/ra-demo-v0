@@ -2095,7 +2095,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                                     const eventData = sessionData.event_data;
                                     if (eventData && eventData.eventTitle) {
                                         // Try to extract event ID from the original session or use a fallback
-                                        const fallbackUrl = 'http://localhost:9999/';
+                                        const fallbackUrl = 'http://192.168.178.68:9999/';
                                         console.log('🔄 Using fallback URL (no return URL stored):', fallbackUrl);
                                         setTimeout(() => {
                                             window.location.href = fallbackUrl;
@@ -2108,14 +2108,14 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                                 console.error('❌ Failed to get session data:', sessionResponse.status, sessionResponse.statusText);
                                 // Fallback to homepage
                                 setTimeout(() => {
-                                    window.location.href = 'http://localhost:9999/';
+                                    window.location.href = 'http://192.168.178.68:9999/';
                                 }, 2000);
                             }
                         } catch (redirectError) {
                             console.error('❌ Error getting return URL:', redirectError);
                             // Fallback to homepage
                             setTimeout(() => {
-                                window.location.href = 'http://localhost:9999/';
+                                window.location.href = 'http://192.168.178.68:9999/';
                             }, 2000);
                         }
 
