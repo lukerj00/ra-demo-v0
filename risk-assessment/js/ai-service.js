@@ -56,6 +56,7 @@ class AIService {
                 }
 
                 const responseData = await response.json();
+                console.log(`🔧 AI Service makeRequest response for ${endpoint}:`, responseData);
                 return responseData;
 
             } catch (error) {
@@ -116,11 +117,12 @@ class AIService {
     /**
      * Generate risk assessment table
      * @param {Object} eventData - Event information
-     * @returns {Promise<Array>}
+     * @returns {Promise<Object>} - Full response with risk_data and legacy risks
      */
     async generateRiskAssessment(eventData) {
         const response = await this.makeRequest('/api/ai/generate-risks', eventData);
-        return response.risks;
+        console.log('🔧 AI Service received response:', response);
+        return response; // Return full response instead of just response.risks
     }
 
     /**

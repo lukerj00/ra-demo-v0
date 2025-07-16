@@ -321,7 +321,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 }
             };
 
-            // Results collection for API mode
+            // Results collection for API mode - Updated for three-table structure
             const collectAssessmentResults = () => {
                 // Extract compliance details
                 let complianceDetails = [];
@@ -353,39 +353,91 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         paragraph1: extractSummaryParagraph(summaryContent, 0),
                         paragraph2: extractSummaryParagraph(summaryContent, 1)
                     },
-                    risks: [],
+                    risks: [], // Legacy compatibility
+                    risk_data: {
+                        terrorism_risks: [],
+                        security_risks: [],
+                        health_safety_risks: []
+                    },
                     metadata: {
                         total_risks: 0,
+                        terrorism_count: 0,
+                        security_count: 0,
+                        health_safety_count: 0,
                         completed_at: new Date().toISOString(),
                         user_agent: navigator.userAgent
                     }
                 };
 
-                // Collect all generated risks
-                const riskRows = document.querySelectorAll('#riskTableBody tr');
-                riskRows.forEach(row => {
+                // Collect terrorism risks
+                const terrorismRows = document.querySelectorAll('#terrorismTableBody tr');
+                terrorismRows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    if (cells.length >= 6) {
+                    if (cells.length >= 8) {
                         const riskData = {
                             risk: cells[0].textContent.trim(),
                             category: cells[1].textContent.trim(),
-                            impact: parseInt(cells[2].textContent.trim()) || null,
-                            likelihood: parseInt(cells[3].textContent.trim()) || null,
-                            overall: parseFloat(cells[4].textContent.trim()) || null,
-                            mitigation: cells[5].textContent.trim()
+                            subcategory: cells[2].textContent.trim(),
+                            impact: parseInt(cells[3].textContent.trim()) || null,
+                            likelihood: parseInt(cells[4].textContent.trim()) || null,
+                            overall: parseFloat(cells[5].textContent.trim()) || null,
+                            mitigation: cells[6].textContent.trim()
                         };
 
-                        // Add justifications if available
-                        const riskIndex = Array.from(riskRows).indexOf(row);
-                        if (window.riskJustifications && window.riskJustifications[riskIndex]) {
-                            riskData.justifications = window.riskJustifications[riskIndex];
-                        }
-
-                        results.risks.push(riskData);
+                        results.risk_data.terrorism_risks.push(riskData);
+                        results.risks.push({...riskData, table_type: 'terrorism'}); // Legacy compatibility
                     }
                 });
 
-                results.metadata.total_risks = results.risks.length;
+                // Collect security risks
+                const securityRows = document.querySelectorAll('#securityTableBody tr');
+                securityRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 8) {
+                        const riskData = {
+                            risk: cells[0].textContent.trim(),
+                            category: cells[1].textContent.trim(),
+                            subcategory: cells[2].textContent.trim(),
+                            impact: parseInt(cells[3].textContent.trim()) || null,
+                            likelihood: parseInt(cells[4].textContent.trim()) || null,
+                            overall: parseFloat(cells[5].textContent.trim()) || null,
+                            mitigation: cells[6].textContent.trim()
+                        };
+
+                        results.risk_data.security_risks.push(riskData);
+                        results.risks.push({...riskData, table_type: 'security'}); // Legacy compatibility
+                    }
+                });
+
+                // Collect health & safety risks
+                const healthSafetyRows = document.querySelectorAll('#healthSafetyTableBody tr');
+                healthSafetyRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 8) {
+                        const riskData = {
+                            risk: cells[0].textContent.trim(),
+                            category: cells[1].textContent.trim(),
+                            subcategory: cells[2].textContent.trim(),
+                            impact: parseInt(cells[3].textContent.trim()) || null,
+                            likelihood: parseInt(cells[4].textContent.trim()) || null,
+                            overall: parseFloat(cells[5].textContent.trim()) || null,
+                            mitigation: cells[6].textContent.trim()
+                        };
+
+                        results.risk_data.health_safety_risks.push(riskData);
+                        results.risks.push({...riskData, table_type: 'health_safety'}); // Legacy compatibility
+                    }
+                });
+
+                // Update metadata counts
+                results.metadata.terrorism_count = results.risk_data.terrorism_risks.length;
+                results.metadata.security_count = results.risk_data.security_risks.length;
+                results.metadata.health_safety_count = results.risk_data.health_safety_risks.length;
+                results.metadata.total_risks = results.metadata.terrorism_count + 
+                                               results.metadata.security_count + 
+                                               results.metadata.health_safety_count;
+
+                console.log('📊 Collected three-table assessment results:', results);
                 return results;
             };
 
@@ -528,10 +580,10 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 riskTableSection.classList.remove('hidden');
                 riskTableSection.classList.add('fade-in');
                 tableLoader.classList.remove('hidden');
-                aiStatus.textContent = `AI is analyzing risks...`;
+                aiStatus.textContent = `AI is analyzing risks across all categories...`;
 
                 try {
-                    progressBar.style.width = '40%';
+                    progressBar.style.width = '20%';
 
                     // Prepare event data for AI risk generation
                     const eventData = {
@@ -544,86 +596,132 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                         description: descriptionInput.value.trim()
                     };
 
-                    aiStatus.textContent = "AI is analyzing event for critical risks...";
+                    aiStatus.textContent = "AI is generating comprehensive risk assessment...";
+                    progressBar.style.width = '40%';
 
                     try {
-                        // Start a conversation with the AI for importance-based risk generation
-                        const conversationId = await aiService.startRiskConversation(eventData);
-                        currentConversationId = conversationId; // Store for additional risks
-                        console.log(`🤖 Started risk conversation: ${conversationId}`);
+                        // Generate risks using the updated three-table format
+                        const response = await aiService.generateRiskAssessment(eventData);
+                        console.log('🤖 Received three-table risk data:', response);
 
-                        // Generate risks progressively in order of importance
-                        const totalRisks = 8;
+                        progressBar.style.width = '60%';
+                        aiStatus.textContent = "Processing risk categories...";
 
-                        for (let i = 1; i <= totalRisks; i++) {
-                            const progress = 30 + (i / totalRisks) * 60; // 30% to 90%
-                            progressBar.style.width = `${progress}%`;
-                            aiStatus.textContent = `AI is identifying risks...`;
+                        // Debug the response structure
+                        console.log('🔍 Full response structure:', response);
+                        console.log('🔍 Has risk_data?', !!response.risk_data);
+                        console.log('🔍 Has risks?', !!response.risks);
+                        console.log('🔍 Response keys:', Object.keys(response));
 
-                            // Update table loader text to show current risk being generated
-                            const tableLoaderText = document.querySelector('#tableLoader p');
-                            if (tableLoaderText) {
-                                tableLoaderText.textContent = `AI is identifying risks...`;
-                            }
-
-                            try {
-                                // Generate next risk in conversation for diversity
-                                const risk = await aiService.generateNextRisk(conversationId, i);
-
-                                // Add the risk to the table immediately
-                                addRiskRow(risk);
-
-                                // Add to risk data with justification fields
-                                const riskWithJustifications = {
-                                    ...risk,
-                                    justifications: {
-                                        risk: null,
-                                        category: null,
-                                        impact: null,
-                                        likelihood: null,
-                                        mitigation: null,
-                                        overall: null
-                                    }
-                                };
-                                riskData.push(riskWithJustifications);
-
-                                // Pre-generate justifications in background (don't wait)
-                                preGenerateJustifications(riskWithJustifications, eventData);
-
-                                // Brief pause to let user see the new row
-                                await sleep(400);
-
-                            } catch (error) {
-                                console.error(`Error generating risk ${i}:`, error);
-                                // Continue with next risk even if one fails
-                            }
+                        // Check if we received the new three-table format
+                        if (response.risk_data) {
+                            // New three-table format
+                            console.log('✅ Using new three-table format');
+                            const riskData = response.risk_data;
+                            
+                            // Show risk summary dashboard
+                            document.getElementById('riskSummaryDashboard').classList.remove('hidden');
+                            
+                            // Update counters
+                            updateRiskCounters(riskData);
+                            
+                            // Populate three separate tables
+                            await populateThreeTables(riskData, eventData);
+                            
+                            progressBar.style.width = '90%';
+                            aiStatus.textContent = "Three-table risk assessment complete!";
+                            
+                        } else if (response.risks && Array.isArray(response.risks)) {
+                            // Legacy single-table format - convert to three tables
+                            console.log('🔄 Converting legacy format to three tables, risks count:', response.risks.length);
+                            const convertedData = convertLegacyToThreeTables(response.risks);
+                            
+                            // Show risk summary dashboard
+                            document.getElementById('riskSummaryDashboard').classList.remove('hidden');
+                            
+                            // Update counters  
+                            updateRiskCounters(convertedData);
+                            
+                            // Populate three separate tables
+                            await populateThreeTables(convertedData, eventData);
+                            
+                            progressBar.style.width = '90%';
+                            aiStatus.textContent = "Risk assessment complete (converted from legacy format)!";
+                        } else {
+                            console.error('❌ Invalid response format:', response);
+                            throw new Error(`No valid risk data found. Response structure: ${JSON.stringify(Object.keys(response))}`);
                         }
-                    } catch (error) {
-                        console.error('Error starting risk conversation:', error);
-                        // Fallback to legacy method if conversation fails
-                        aiStatus.textContent = "Falling back to standard risk generation...";
 
-                        const totalRisks = 8;
-                        for (let i = 1; i <= totalRisks; i++) {
-                            try {
-                                const risk = await aiService.generateSingleRisk(eventData, i, totalRisks);
-                                addRiskRow(risk);
-                                riskData.push({
-                                    ...risk,
-                                    justifications: {
-                                        risk: null,
-                                        category: null,
-                                        impact: null,
-                                        likelihood: null,
-                                        mitigation: null,
-                                        overall: null
-                                    }
-                                });
-                                await sleep(400);
-                            } catch (riskError) {
-                                console.error(`Error generating fallback risk ${i}:`, riskError);
-                            }
-                        }
+                    } catch (conversationError) {
+                        console.error('❌ Error with risk generation:', conversationError);
+                        
+                        // Try a simpler fallback - generate some basic risks 
+                        aiStatus.textContent = "Generating basic risk assessment...";
+                        
+                        // Create a basic risk data structure
+                        const fallbackRiskData = {
+                            terrorism_risks: [
+                                {
+                                    risk: "Potential security threat requiring assessment",
+                                    category: "Marauding Attack",
+                                    subcategory: "General",
+                                    impact: 3,
+                                    likelihood: 2,
+                                    overall: 2.4,
+                                    mitigation: "Implement comprehensive security measures"
+                                }
+                            ],
+                            security_risks: [
+                                {
+                                    risk: "Unauthorized access to restricted areas",
+                                    category: "Physical Security",
+                                    subcategory: "Perimeter Breach",
+                                    impact: 3,
+                                    likelihood: 3,
+                                    overall: 3.6,
+                                    mitigation: "Deploy security personnel and access controls"
+                                },
+                                {
+                                    risk: "Crowd control challenges during event",
+                                    category: "Crowd Control",
+                                    subcategory: "Crowd Dynamics",
+                                    impact: 4,
+                                    likelihood: 3,
+                                    overall: 4.8,
+                                    mitigation: "Implement crowd management protocols"
+                                }
+                            ],
+                            health_safety_risks: [
+                                {
+                                    risk: "Medical emergencies requiring immediate response",
+                                    category: "Medical Emergency",
+                                    subcategory: "Critical Care",
+                                    impact: 4,
+                                    likelihood: 3,
+                                    overall: 4.8,
+                                    mitigation: "Station medical personnel on-site"
+                                },
+                                {
+                                    risk: "Weather-related safety concerns",
+                                    category: "Environmental Hazards",
+                                    subcategory: "Weather-related",
+                                    impact: 3,
+                                    likelihood: 3,
+                                    overall: 3.6,
+                                    mitigation: "Monitor weather and prepare contingency plans"
+                                }
+                            ]
+                        };
+
+                        // Show risk summary dashboard
+                        document.getElementById('riskSummaryDashboard').classList.remove('hidden');
+                        
+                        // Update counters and populate tables
+                        updateRiskCounters(fallbackRiskData);
+                        await populateThreeTables(fallbackRiskData, eventData);
+                        
+                        progressBar.style.width = '90%';
+                        aiStatus.textContent = "Basic risk assessment complete (fallback mode)";
                     }
 
                     tableLoader.classList.add('hidden');
@@ -650,6 +748,190 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     alert('Failed to generate AI risk assessment: ' + error.message);
                 }
             };
+
+            // === THREE-TABLE RISK ASSESSMENT FUNCTIONS ===
+
+            const updateRiskCounters = (riskData) => {
+                const terrorismCount = riskData.terrorism_risks ? riskData.terrorism_risks.length : 0;
+                const securityCount = riskData.security_risks ? riskData.security_risks.length : 0;
+                const healthSafetyCount = riskData.health_safety_risks ? riskData.health_safety_risks.length : 0;
+
+                console.log(`📈 Updating counters - Terrorism: ${terrorismCount}, Security: ${securityCount}, Health: ${healthSafetyCount}`);
+
+                // Check if elements exist before updating
+                const terrorismCountEl = document.getElementById('terrorismCount');
+                const securityCountEl = document.getElementById('securityCount');
+                const healthSafetyCountEl = document.getElementById('healthSafetyCount');
+
+                if (terrorismCountEl) terrorismCountEl.textContent = terrorismCount;
+                if (securityCountEl) securityCountEl.textContent = securityCount;
+                if (healthSafetyCountEl) healthSafetyCountEl.textContent = healthSafetyCount;
+
+                // Update badges
+                const terrorismBadge = document.getElementById('terrorismRiskBadge');
+                const securityBadge = document.getElementById('securityRiskBadge');
+                const healthSafetyBadge = document.getElementById('healthSafetyRiskBadge');
+
+                if (terrorismBadge) terrorismBadge.textContent = `${terrorismCount} risks`;
+                if (securityBadge) securityBadge.textContent = `${securityCount} risks`;
+                if (healthSafetyBadge) healthSafetyBadge.textContent = `${healthSafetyCount} risks`;
+
+                console.log('✅ Risk counters updated');
+            };
+
+            const populateThreeTables = async (riskData, eventData) => {
+                console.log('📊 Populating three tables with data:', riskData);
+                
+                // Clear existing table contents
+                document.getElementById('terrorismTableBody').innerHTML = '';
+                document.getElementById('securityTableBody').innerHTML = '';
+                document.getElementById('healthSafetyTableBody').innerHTML = '';
+
+                // Populate terrorism risks
+                if (riskData.terrorism_risks && riskData.terrorism_risks.length > 0) {
+                    console.log(`🎯 Adding ${riskData.terrorism_risks.length} terrorism risks`);
+                    for (const risk of riskData.terrorism_risks) {
+                        await addRiskToTable('terrorism', risk, eventData);
+                        await sleep(200); // Brief delay for visual effect
+                    }
+                } else {
+                    console.log('🎯 No terrorism risks to add');
+                }
+
+                // Populate security risks
+                if (riskData.security_risks && riskData.security_risks.length > 0) {
+                    console.log(`🛡️ Adding ${riskData.security_risks.length} security risks`);
+                    for (const risk of riskData.security_risks) {
+                        await addRiskToTable('security', risk, eventData);
+                        await sleep(200);
+                    }
+                } else {
+                    console.log('🛡️ No security risks to add');
+                }
+
+                // Populate health & safety risks
+                if (riskData.health_safety_risks && riskData.health_safety_risks.length > 0) {
+                    console.log(`🏥 Adding ${riskData.health_safety_risks.length} health & safety risks`);
+                    for (const risk of riskData.health_safety_risks) {
+                        await addRiskToTable('health_safety', risk, eventData);
+                        await sleep(200);
+                    }
+                } else {
+                    console.log('🏥 No health & safety risks to add');
+                }
+
+                // Store risk data globally for later access
+                window.threeTableRiskData = riskData;
+                console.log('✅ Three-table population complete');
+            };
+
+            const addRiskToTable = async (tableType, risk, eventData) => {
+                console.log(`🔧 Adding ${tableType} risk:`, risk);
+                
+                const tableBodyId = tableType === 'terrorism' ? 'terrorismTableBody' : 
+                                   tableType === 'security' ? 'securityTableBody' : 'healthSafetyTableBody';
+                const tableBody = document.getElementById(tableBodyId);
+
+                if (!tableBody) {
+                    console.error(`❌ Table body not found: ${tableBodyId}`);
+                    return;
+                }
+
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+
+                // Safely calculate overall score
+                const impact = parseFloat(risk.impact) || 0;
+                const likelihood = parseFloat(risk.likelihood) || 0;
+                const overallScore = risk.overall ? parseFloat(risk.overall) : (impact * likelihood * 0.4);
+                const safeOverallScore = isNaN(overallScore) ? 0 : overallScore;
+                
+                const riskLevel = safeOverallScore >= 7 ? 'High' : safeOverallScore >= 4 ? 'Medium' : 'Low';
+                const riskColor = riskLevel === 'High' ? 'text-red-600' : 
+                                  riskLevel === 'Medium' ? 'text-yellow-600' : 'text-green-600';
+
+                console.log(`🎯 Risk scores - Impact: ${impact}, Likelihood: ${likelihood}, Overall: ${safeOverallScore}`);
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm text-gray-900 break-words">${risk.risk || 'Unknown risk'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${risk.category || 'Unknown'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${risk.subcategory || 'General'}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-center">${impact || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-center">${likelihood || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm font-bold text-center ${riskColor}">${safeOverallScore.toFixed(1)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900 break-words">${risk.mitigation || 'No mitigation specified'}</td>
+                    <td class="px-4 py-3 text-sm text-center">
+                        <button class="text-blue-600 hover:text-blue-800 font-medium" onclick="viewRiskDetails('${tableType}', ${tableBody.children.length})">
+                            ℹ️
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+                console.log(`✅ Added risk to ${tableBodyId}, total rows: ${tableBody.children.length}`);
+
+                // Add to global risk data for justifications
+                const riskWithJustifications = {
+                    ...risk,
+                    table_type: tableType,
+                    justifications: {
+                        risk: null,
+                        category: null,
+                        impact: null,
+                        likelihood: null,
+                        mitigation: null,
+                        overall: null
+                    }
+                };
+                
+                if (!window.allRisksData) window.allRisksData = [];
+                window.allRisksData.push(riskWithJustifications);
+
+                // Pre-generate justifications in background (don't await to avoid blocking UI)
+                if (typeof preGenerateJustifications === 'function') {
+                    preGenerateJustifications(riskWithJustifications, eventData);
+                }
+            };
+
+            const convertLegacyToThreeTables = (legacyRisks) => {
+                const terrorism_risks = [];
+                const security_risks = [];
+                const health_safety_risks = [];
+
+                for (const risk of legacyRisks) {
+                    const category = (risk.category || 'Security').toLowerCase();
+                    
+                    if (category.includes('terror') || category.includes('attack') || category.includes('explosive')) {
+                        terrorism_risks.push({
+                            ...risk,
+                            category: 'Marauding Attack',
+                            subcategory: 'Armed Assault'
+                        });
+                    } else if (category.includes('health') || category.includes('safety') || 
+                               category.includes('medical') || category.includes('fire') || 
+                               category.includes('environmental')) {
+                        health_safety_risks.push({
+                            ...risk,
+                            category: 'Medical Emergency',
+                            subcategory: 'General'
+                        });
+                    } else {
+                        security_risks.push({
+                            ...risk,
+                            category: 'Physical Security',
+                            subcategory: 'General'
+                        });
+                    }
+                }
+
+                return {
+                    terrorism_risks,
+                    security_risks,
+                    health_safety_risks
+                };
+            };
+
+            // === END THREE-TABLE FUNCTIONS ===
 
             const populateEventCard = () => {
                 // Populate event card with form data
@@ -1031,8 +1313,8 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                     <td class="px-6 py-4 whitespace-normal text-sm justification-icon-container" data-field="risk">
                         ${createCellContent(risk.risk, 'Risk Description', risk.id)}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm" data-field="category">
-                        <div>${risk.category}</div>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm justification-icon-container" data-field="category">
+                        ${createCellContent(risk.category, 'Category', risk.id)}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm justification-icon-container" data-field="impact">
                         ${createCellContent(risk.impact, 'Impact', risk.id, true)}
@@ -1085,12 +1367,10 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                             reasoning = `The Overall Score (${overall}) is calculated by multiplying Impact (${currentRisk.impact}) by Likelihood (${currentRisk.likelihood}).`;
                             sources = ['Risk Scoring Matrix', 'Internal Calculation Logic'];
                             openJustificationPane(fieldName, fieldValue, reasoning, sources);
-                        } else if (fieldName === 'Category') {
-                            // Skip justification generation for Category field
-                            return;
                         } else {
                             // For other fields, get fieldValue from currentRisk
                             if (fieldName === 'Risk Description') fieldValue = currentRisk.risk;
+                            else if (fieldName === 'Category') fieldValue = currentRisk.category;
                             else if (fieldName === 'Impact') fieldValue = currentRisk.impact.toString();
                             else if (fieldName === 'Likelihood') fieldValue = currentRisk.likelihood.toString();
                             else if (fieldName === 'Mitigations') fieldValue = currentRisk.mitigation;
@@ -1162,6 +1442,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                          // Clear stored justifications for changed fields
                          const fieldMappings = {
                              'risk': { old: oldValues.risk, new: riskItem.risk },
+                             'category': { old: oldValues.category, new: riskItem.category },
                              'impact': { old: oldValues.impact, new: riskItem.impact },
                              'likelihood': { old: oldValues.likelihood, new: riskItem.likelihood },
                              'mitigation': { old: oldValues.mitigation, new: riskItem.mitigation }
@@ -1466,6 +1747,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                 // Map field names to justification keys
                 const fieldMap = {
                     'Risk Description': 'risk',
+                    'Category': 'category',
                     'Impact': 'impact',
                     'Likelihood': 'likelihood',
                     'Mitigations': 'mitigation',
@@ -2095,7 +2377,7 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                                     const eventData = sessionData.event_data;
                                     if (eventData && eventData.eventTitle) {
                                         // Try to extract event ID from the original session or use a fallback
-                                        const fallbackUrl = 'http://192.168.178.68:9999/';
+                                        const fallbackUrl = 'http://localhost:9999/';
                                         console.log('🔄 Using fallback URL (no return URL stored):', fallbackUrl);
                                         setTimeout(() => {
                                             window.location.href = fallbackUrl;
@@ -2108,14 +2390,14 @@ console.log('🚀 MAIN.JS VERSION 2.0 LOADED - REDIRECT FIX ACTIVE');
                                 console.error('❌ Failed to get session data:', sessionResponse.status, sessionResponse.statusText);
                                 // Fallback to homepage
                                 setTimeout(() => {
-                                    window.location.href = 'http://192.168.178.68:9999/';
+                                    window.location.href = 'http://localhost:9999/';
                                 }, 2000);
                             }
                         } catch (redirectError) {
                             console.error('❌ Error getting return URL:', redirectError);
                             // Fallback to homepage
                             setTimeout(() => {
-                                window.location.href = 'http://192.168.178.68:9999/';
+                                window.location.href = 'http://localhost:9999/';
                             }, 2000);
                         }
 
