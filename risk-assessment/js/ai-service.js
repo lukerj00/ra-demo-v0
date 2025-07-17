@@ -5,8 +5,8 @@
 
 class AIService {
     constructor() {
-        // Use current origin for backend URL (same server as main app)
-        this.backendURL = window.location.origin;
+        // Use main app backend URL which has the enhanced risk generation
+        this.backendURL = 'http://localhost:8085';
         this.maxRetries = 3;
         this.retryDelay = 1000; // 1 second
         this.initialized = false;

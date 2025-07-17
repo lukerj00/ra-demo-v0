@@ -11,7 +11,7 @@ import json
 import argparse
 import logging
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, render_template_string, send_from_directory
 from flask_cors import CORS
 
 # Configure logging
@@ -206,6 +206,279 @@ def delete_session(session_id):
         "status": "success",
         "message": "Session cleaned up successfully"
     })
+
+# === RISK GENERATION ENDPOINTS ===
+
+@app.route("/api/ai/generate-risks", methods=["POST"])
+def generate_risks():
+    """
+    Generate risks using AI for the Risk Assessment tool.
+    This endpoint is called by the AI tool's frontend.
+    Returns risks categorized into three tables: terrorism, security, health_safety.
+    """
+    try:
+        data = request.get_json()
+        logger.info(f"🎯 STANDALONE APP: /api/ai/generate-risks endpoint called with data: {data}")
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        # Extract event details
+        event_title = data.get('eventTitle', '')
+        event_type = data.get('eventType', '')
+        venue_type = data.get('venueType', '')
+        location = data.get('location', '')
+        attendance = data.get('attendance', 0)
+        description = data.get('description', '')
+        
+        logger.info(f"🎯 STANDALONE APP: Processing event_type={event_type}, attendance={attendance}")
+
+        # Generate risks based on event details - now returns three categories
+        risk_data = _generate_risks_for_event(event_title, event_type, venue_type, location, attendance, description)
+
+        total_risks = len(risk_data['terrorism_risks']) + len(risk_data['security_risks']) + len(risk_data['health_safety_risks'])
+
+        response_data = {
+            "success": True,
+            "risk_data": risk_data,  # New three-table format
+            "risks": risk_data['security_risks'],  # Legacy compatibility - return security risks as main list
+            "message": f"Generated {total_risks} risks across 3 categories for {event_title}",
+            "statistics": {
+                "terrorism_count": len(risk_data['terrorism_risks']),
+                "security_count": len(risk_data['security_risks']),
+                "health_safety_count": len(risk_data['health_safety_risks']),
+                "total_count": total_risks
+            }
+        }
+        
+        logger.info(f"🎯 STANDALONE APP: Returning response with keys: {list(response_data.keys())}")
+        logger.info(f"🎯 STANDALONE APP: Terrorism risks count: {len(risk_data['terrorism_risks'])}")
+        
+        return jsonify(response_data)
+
+    except Exception as e:
+        logger.error(f"Error generating risks: {str(e)}")
+        return jsonify({"success": False, "error": "Failed to generate risks"}), 500
+
+def _generate_risks_for_event(event_title, event_type, venue_type, location, attendance, description):
+    """Generate risks based on event characteristics, categorized into three tables"""
+    
+    # Convert attendance to int for processing
+    try:
+        attendance_num = int(attendance) if attendance else 0
+    except (ValueError, TypeError):
+        attendance_num = 0
+    
+    # Initialize risk categories
+    terrorism_risks = []
+    security_risks = []
+    health_safety_risks = []
+    
+    # === TERRORISM RISKS (NPSA-compliant categories) ===
+    
+    # Base terrorism risks for high-profile events
+    terrorism_condition = attendance_num > 5000 or event_type in ['Music', 'Sport', 'Political']
+    
+    if terrorism_condition:
+        # Core terrorism risks for high-profile events
+        terrorism_risks.extend([
+            {
+                "risk": "Potential for marauding terrorist attack targeting high-density crowd areas",
+                "category": "Marauding Attack",
+                "subcategory": "Multi-Actor Armed Assault",
+                "impact": 5,
+                "likelihood": 2,
+                "mitigation": "Deploy armed police response teams, establish layered security perimeter, implement advanced screening and real-time intelligence monitoring"
+            },
+            {
+                "risk": "Vehicle-borne improvised explosive device (VBIED) targeting venue entrance or perimeter",
+                "category": "Vehicle as Weapon",
+                "subcategory": "Large Vehicle-Borne IED",
+                "impact": 5,
+                "likelihood": 1,
+                "mitigation": "Install hostile vehicle mitigation barriers, establish vehicle exclusion zones, deploy explosive detection equipment at checkpoints"
+            },
+            {
+                "risk": "Person-borne improvised explosive device (suicide bomber) infiltrating crowd areas",
+                "category": "IEDs",
+                "subcategory": "Person-Borne IED (PBIED)",
+                "impact": 5,
+                "likelihood": 2,
+                "mitigation": "Implement multi-layer screening, deploy explosive detection technology, train staff in suspicious behavior recognition"
+            },
+            {
+                "risk": "Coordinated vehicle ramming attack followed by armed assault",
+                "category": "Vehicle as Weapon", 
+                "subcategory": "Vehicle-Weapon Combined Attack",
+                "impact": 5,
+                "likelihood": 1,
+                "mitigation": "Deploy anti-ram barriers, position armed response teams, create rapid lockdown procedures"
+            },
+            {
+                "risk": "Improvised explosive device placement in high-traffic areas or emergency exits",
+                "category": "IEDs",
+                "subcategory": "Concealed Area-Denial Device",
+                "impact": 4,
+                "likelihood": 2,
+                "mitigation": "Conduct systematic explosive ordnance disposal sweeps, secure all potential concealment areas, monitor unattended items"
+            }
+        ])
+    
+    # Event type specific terrorism risks
+    if event_type == 'Music':
+        terrorism_risks.extend([
+            {
+                "risk": "Coordinated multi-location attack during peak performance periods",
+                "category": "Marauding Attack", 
+                "subcategory": "Synchronized Multi-Site Attack",
+                "impact": 5,
+                "likelihood": 1,
+                "mitigation": "Establish central command coordination, deploy rapid response teams across all locations, implement real-time communication systems"
+            },
+            {
+                "risk": "Chemical dispersal attack targeting air circulation systems or crowd areas",
+                "category": "Chemical, Biological, Radiological",
+                "subcategory": "Chemical Agent Dispersal",
+                "impact": 4,
+                "likelihood": 1,
+                "mitigation": "Install chemical detection systems, prepare decontamination protocols, coordinate with hazmat response teams"
+            }
+        ])
+        if attendance_num > 15000:
+            terrorism_risks.append({
+                "risk": "Mass casualty attack using explosive-laden drone or aerial device",
+                "category": "IEDs",
+                "subcategory": "Aerial-Delivered Device",
+                "impact": 4,
+                "likelihood": 1,
+                "mitigation": "Deploy counter-drone technology, establish no-fly enforcement zone, coordinate with air traffic control"
+            })
+    
+    if event_type == 'Sport':
+        terrorism_risks.extend([
+            {
+                "risk": "Symbolic attack targeting national or international sporting event",
+                "category": "Marauding Attack",
+                "subcategory": "High-Profile Symbolic Target",
+                "impact": 5,
+                "likelihood": 2,
+                "mitigation": "Enhance protective security around VIP areas, coordinate with national security agencies, implement elevated threat protocols"
+            },
+            {
+                "risk": "Stadium structural attack using vehicle-borne explosive device",
+                "category": "Vehicle as Weapon",
+                "subcategory": "Structural Damage VBIED",
+                "impact": 5,
+                "likelihood": 1,
+                "mitigation": "Establish expanded vehicle exclusion perimeter, conduct structural vulnerability assessment, deploy heavy vehicle barriers"
+            }
+        ])
+    
+    if event_type == 'Political':
+        terrorism_risks.extend([
+            {
+                "risk": "Assassination attempt against high-profile political figures",
+                "category": "Marauding Attack",
+                "subcategory": "Targeted Individual Attack",
+                "impact": 5,
+                "likelihood": 2,
+                "mitigation": "Deploy specialist protection teams, implement close protection protocols, establish secure corridors and safe rooms"
+            },
+            {
+                "risk": "Mass disruption attack to undermine democratic process",
+                "category": "IEDs",
+                "subcategory": "Disruption-Focused Device",
+                "impact": 4,
+                "likelihood": 2,
+                "mitigation": "Establish backup venue protocols, coordinate with election security teams, implement rapid evacuation procedures"
+            }
+        ])
+    
+    if 'Outdoor' in venue_type:
+        terrorism_risks.extend([
+            {
+                "risk": "Long-range sniper attack from elevated positions targeting crowd or VIPs",
+                "category": "Marauding Attack",
+                "subcategory": "Standoff Weapon Attack",
+                "impact": 4,
+                "likelihood": 1,
+                "mitigation": "Conduct overwatch security from elevated positions, establish counter-sniper teams, secure all sight lines"
+            },
+            {
+                "risk": "Mortar or rocket attack from outside security perimeter",
+                "category": "IEDs", 
+                "subcategory": "Indirect Fire Device",
+                "impact": 4,
+                "likelihood": 1,
+                "mitigation": "Establish extended security perimeter, deploy counter-mortar detection systems, coordinate with military EOD teams"
+            }
+        ])
+    
+    # Additional risks for very large events
+    if attendance_num > 20000:
+        terrorism_risks.append({
+            "risk": "Cyber attack targeting critical event infrastructure and safety systems",
+            "category": "Cyber Attack",
+            "subcategory": "Critical Infrastructure Disruption",
+            "impact": 4,
+            "likelihood": 2,
+            "mitigation": "Implement air-gapped backup systems, deploy cybersecurity monitoring, establish manual override procedures"
+        })
+    
+    # === SECURITY RISKS ===
+    
+    # Base security risks for all events
+    security_risks.extend([
+        {
+            "risk": "Unauthorized access to restricted areas including backstage, VIP, and operational zones",
+            "category": "Physical Security",
+            "subcategory": "Access Control Failure",
+            "impact": 3,
+            "likelihood": 3,
+            "mitigation": "Deploy biometric access control systems, position security at access points, implement zone-based security clearances"
+        },
+        {
+            "risk": "Theft of personal belongings, equipment, or merchandise during event operations",
+            "category": "Physical Security",
+            "subcategory": "Property Crime",
+            "impact": 2,
+            "likelihood": 4,
+            "mitigation": "Install comprehensive CCTV coverage, provide secure storage lockers, deploy plainclothes security in high-risk areas"
+        }
+    ])
+    
+    # === HEALTH & SAFETY RISKS ===
+    
+    # Base health and safety risks for all events
+    health_safety_risks.extend([
+        {
+            "risk": "Cardiac emergencies and life-threatening medical conditions requiring immediate response",
+            "category": "Medical Emergency",
+            "subcategory": "Acute Life-Threatening Emergency",
+            "impact": 5,
+            "likelihood": 3,
+            "mitigation": "Deploy qualified paramedics with defibrillation capability, establish direct emergency services hotline, maintain emergency medication stocks"
+        },
+        {
+            "risk": "Slip, trip and fall incidents on wet surfaces, steps, and uneven terrain",
+            "category": "Environmental Hazards",
+            "subcategory": "Ground Surface Hazards", 
+            "impact": 3,
+            "likelihood": 4,
+            "mitigation": "Install anti-slip surfaces, maintain clear sight lines, deploy safety signage and barrier marking"
+        }
+    ])
+    
+    # Calculate overall scores for each risk
+    for risk_list in [terrorism_risks, security_risks, health_safety_risks]:
+        for risk in risk_list:
+            risk['overall'] = risk['impact'] * risk['likelihood']
+    
+    return {
+        "terrorism_risks": terrorism_risks,
+        "security_risks": security_risks, 
+        "health_safety_risks": health_safety_risks
+    }
 
 # Serve static files
 @app.route("/<path:filename>")
